@@ -37,14 +37,9 @@ export function SalaryWaterfallChart({ result }: Props) {
       color: "#8b5cf6",
     },
     {
-      name: "Spending",
-      value: result.annualSpending,
+      name: "Budget",
+      value: result.annualBudget,
       color: "#ec4899",
-    },
-    {
-      name: "Savings",
-      value: result.annualSavings,
-      color: "#22c55e",
     },
   ].filter((d) => d.value > 0);
 

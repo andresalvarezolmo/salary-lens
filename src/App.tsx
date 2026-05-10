@@ -1,24 +1,49 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { calculatePension, formatCurrency } from "./lib/pension";
-import type { PensionInputs } from "./lib/pension";
+import type { PensionInputs, BudgetCategory } from "./lib/pension";
 import { CurrencyInput } from "./components/CurrencyInput";
 import { Toggle } from "./components/Toggle";
 import { StatCard } from "./components/StatCard";
-import { PensionBreakdownChart } from "./components/PensionBreakdownChart";
 import { SalaryWaterfallChart } from "./components/SalaryWaterfallChart";
-import { PiggyBank, TrendingUp, Shield, Building2 } from "lucide-react";
+import { PayslipComparison } from "./components/PayslipComparison";
+import { SavingsOverview } from "./components/SavingsOverview";
+import { BudgetCategoryList } from "./components/BudgetCategoryList";
+import {
+  PiggyBank,
+  TrendingUp,
+  Wallet,
+  Landmark,
+  Building2,
+  SlidersHorizontal,
+  Plus,
+} from "lucide-react";
+
+let nextId = 1;
+
+const DEFAULT_SPENDING: BudgetCategory[] = [
+  { id: "spending", label: "Monthly Spending", monthlyAmount: 1500, builtIn: false },
+];
+
+const DEFAULT_SAVINGS: BudgetCategory[] = [
+  { id: "isa", label: "ISA Contributions", monthlyAmount: 1666.66, builtIn: true },
+];
 
 function App() {
   const [inputs, setInputs] = useState<PensionInputs>({
     grossSalary: 0,
-    monthlySpending: 2000,
-    monthlySavings: 500,
-    employerMatchEnabled: false,
-    employerMatchPercent: 5,
-    employerMatchCapPercent: 5,
+    spendingCategories: DEFAULT_SPENDING,
+    savingsCategories: DEFAULT_SAVINGS,
+    employerMatchEnabled: true,
+    employerMatchPercent: 3,
+    employerMatchOnGross: false,
     salarySacrifice: true,
-    includeEmployeeNiSaving: true,
-    includeEmployerNiSaving: false,
+    includeEmployeeNiSaving: false,
+    includeEmployerNiSaving: true,
+    scottishTax: true,
+    contributionMode: "percentage",
+    chosenMonthlyContribution: 0,
+    employeeContributionPercent: 5,
+    chosenMonthlyGross: 0,
   });
 
   const update = <K extends keyof PensionInputs>(
@@ -28,7 +53,84 @@ function App() {
     setInputs((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Category helpers for spending
+  const updateSpending = useCallback(
+    (id: string, field: "label" | "monthlyAmount", value: string | number) => {
+      setInputs((prev) => ({
+        ...prev,
+        spendingCategories: prev.spendingCategories.map((c) =>
+          c.id === id ? { ...c, [field]: value } : c
+        ),
+      }));
+    },
+    []
+  );
+  const addSpending = useCallback(() => {
+    setInputs((prev) => ({
+      ...prev,
+      spendingCategories: [
+        ...prev.spendingCategories,
+        { id: `spend-${nextId++}`, label: "New expense", monthlyAmount: 0 },
+      ],
+    }));
+  }, []);
+  const removeSpending = useCallback((id: string) => {
+    setInputs((prev) => ({
+      ...prev,
+      spendingCategories: prev.spendingCategories.filter((c) => c.id !== id),
+    }));
+  }, []);
+
+  // Category helpers for savings
+  const updateSavings = useCallback(
+    (id: string, field: "label" | "monthlyAmount", value: string | number) => {
+      setInputs((prev) => ({
+        ...prev,
+        savingsCategories: prev.savingsCategories.map((c) =>
+          c.id === id ? { ...c, [field]: value } : c
+        ),
+      }));
+    },
+    []
+  );
+  const addSavings = useCallback(() => {
+    setInputs((prev) => ({
+      ...prev,
+      savingsCategories: [
+        ...prev.savingsCategories,
+        { id: `save-${nextId++}`, label: "New savings", monthlyAmount: 0 },
+      ],
+    }));
+  }, []);
+  const removeSavings = useCallback((id: string) => {
+    setInputs((prev) => ({
+      ...prev,
+      savingsCategories: prev.savingsCategories.filter((c) => c.id !== id),
+    }));
+  }, []);
+
   const result = useMemo(() => calculatePension(inputs), [inputs]);
+
+  // On first load, seed sliders to max available (only for netCost/gross modes)
+  const [hasInitialised, setHasInitialised] = useState(false);
+  useEffect(() => {
+    if (hasInitialised) return;
+    if (inputs.contributionMode === "netCost" && result.maxContributionMonthly > 0) {
+      update("chosenMonthlyContribution", result.maxContributionMonthly);
+    } else if (inputs.contributionMode === "gross" && result.maxGrossMonthly > 0) {
+      update("chosenMonthlyGross", result.maxGrossMonthly);
+    }
+    setHasInitialised(true);
+  }, [hasInitialised, result.maxContributionMonthly, result.maxGrossMonthly, inputs.contributionMode]);
+
+  const contributionExceedsBudget =
+    result.effectiveTakeHomeGain > result.availableForPension && result.employeeContribution > 0;
+
+  const sliderMax = Math.max(
+    result.maxContributionMonthly,
+    inputs.chosenMonthlyContribution,
+    Math.round(result.takeHomeNoPension / 12)
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
@@ -67,42 +169,277 @@ function App() {
                 max={300000}
                 step={1000}
               />
+              <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                <Toggle
+                  id="scottish"
+                  label="Scottish Tax Rates"
+                  description="Use Scottish income tax bands"
+                  enabled={inputs.scottishTax}
+                  onChange={(v) => update("scottishTax", v)}
+                />
+              </div>
             </section>
 
-            {/* Budget */}
+            {/* Spending */}
             <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <Shield className="w-4 h-4 text-emerald-500" />
-                Monthly Budget
-              </h2>
-              <CurrencyInput
-                id="spending"
-                label="Monthly Spending"
-                value={inputs.monthlySpending}
-                onChange={(v) => update("monthlySpending", v)}
-                max={15000}
-                step={100}
-                helpText="Rent, bills, food, transport, etc."
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-rose-500" />
+                  Spending
+                </h2>
+                <button
+                  onClick={addSpending}
+                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
+
+              <BudgetCategoryList
+                categories={inputs.spendingCategories}
+                onUpdate={updateSpending}
+                onAdd={addSpending}
+                onRemove={removeSpending}
+                addLabel="Add expense"
               />
-              <CurrencyInput
-                id="savings"
-                label="Monthly Savings"
-                value={inputs.monthlySavings}
-                onChange={(v) => update("monthlySavings", v)}
-                max={10000}
-                step={100}
-                helpText="ISA, emergency fund, investments"
-              />
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500 dark:text-slate-400">
-                    Available for pension
+                    Total spending
                   </span>
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                    {formatCurrency(result.availableForPension)} / yr
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    {formatCurrency(result.totalMonthlySpending)} / mo
                   </span>
                 </div>
+                <button
+                  onClick={() => {
+                    const otherSpending = inputs.spendingCategories.slice(1).reduce((s, c) => s + c.monthlyAmount, 0);
+                    const firstMax = Math.max(0, result.maxSpendingMonthly - otherSpending);
+                    if (inputs.spendingCategories.length > 0) {
+                      updateSpending(inputs.spendingCategories[0].id, "monthlyAmount", firstMax);
+                    }
+                  }}
+                  className="w-full text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Use max budget ({formatCurrency(result.maxSpendingMonthly)}/mo)
+                </button>
               </div>
+            </section>
+
+            {/* Savings */}
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-emerald-500" />
+                  Savings
+                </h2>
+                <button
+                  onClick={addSavings}
+                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add
+                </button>
+              </div>
+
+              <BudgetCategoryList
+                categories={inputs.savingsCategories}
+                onUpdate={updateSavings}
+                onAdd={addSavings}
+                onRemove={removeSavings}
+                addLabel="Add savings"
+              />
+
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Total savings (excl. pension)
+                  </span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(result.totalMonthlySavings)} / mo
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    const isa = inputs.savingsCategories.find((c) => c.builtIn);
+                    if (isa) {
+                      const otherSavings = inputs.savingsCategories.filter((c) => !c.builtIn).reduce((s, c) => s + c.monthlyAmount, 0);
+                      const isaMax = Math.max(0, result.maxSavingsMonthly - otherSavings);
+                      updateSavings(isa.id, "monthlyAmount", isaMax);
+                    }
+                  }}
+                  className="w-full text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Max ISA ({formatCurrency(result.maxSavingsMonthly)}/mo)
+                </button>
+              </div>
+            </section>
+
+            {/* Available summary */}
+            <div className="rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 p-4 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-indigo-700 dark:text-indigo-300">
+                  Available for pension (net)
+                </span>
+                <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                  {formatCurrency(result.availableForPension)} / yr
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-indigo-600/70 dark:text-indigo-400/70">
+                  Max you can afford
+                </span>
+                <span className="font-medium text-indigo-600/70 dark:text-indigo-400/70">
+                  {formatCurrency(result.maxContributionMonthly)} / mo
+                </span>
+              </div>
+            </div>
+
+            {/* Contribution amount */}
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                Your Contribution
+              </h2>
+
+              {/* Mode toggle */}
+              <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5">
+                {(["percentage", "gross", "netCost"] as const).map((mode) => {
+                  const label = mode === "percentage" ? "% of QE" : mode === "gross" ? "Gross £" : "Net Cost";
+                  const isActive = inputs.contributionMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        if (inputs.contributionMode === mode) return;
+                        const grossMonthly = result.employeeContributionMonthly;
+                        const netCostMonthly = Math.round(result.effectiveTakeHomeGain / 12);
+                        const pct = result.qualifyingEarnings > 0
+                          ? Math.round((result.employeeContribution / result.qualifyingEarnings) * 100)
+                          : 0;
+                        setInputs((prev) => ({
+                          ...prev,
+                          contributionMode: mode,
+                          employeeContributionPercent: pct,
+                          chosenMonthlyGross: grossMonthly,
+                          chosenMonthlyContribution: netCostMonthly,
+                        }));
+                      }}
+                      className={`flex-1 text-xs font-medium px-2 py-1.5 rounded-md transition-colors ${
+                        isActive
+                          ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
+                          : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {inputs.contributionMode === "percentage" && (
+                <>
+                  <CurrencyInput
+                    id="empContPct"
+                    label="Employee Contribution"
+                    value={inputs.employeeContributionPercent}
+                    onChange={(v) => update("employeeContributionPercent", v)}
+                    prefix=""
+                    suffix="%"
+                    max={40}
+                    step={1}
+                    helpText={`${formatCurrency(result.employeeContributionMonthly)} / month gross sacrifice (${formatCurrency(result.employeeContribution)} / year)`}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => update("employeeContributionPercent", result.maxEmployeePercent)}
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Use max budget
+                    </button>
+                    <button
+                      onClick={() => update("employeeContributionPercent", 0)}
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Reset to 0%
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {inputs.contributionMode === "gross" && (
+                <>
+                  <CurrencyInput
+                    id="grossContrib"
+                    label="Monthly Gross Sacrifice"
+                    value={inputs.chosenMonthlyGross}
+                    onChange={(v) => update("chosenMonthlyGross", v)}
+                    max={Math.max(result.maxGrossMonthly, inputs.chosenMonthlyGross, Math.round(result.grossSalary / 12))}
+                    step={50}
+                    helpText={`Net cost: ${formatCurrency(Math.round(result.effectiveTakeHomeGain / 12))} / month (${formatCurrency(result.employeeContribution)} / year into pension)`}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => update("chosenMonthlyGross", result.maxGrossMonthly)}
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Use max budget
+                    </button>
+                    <button
+                      onClick={() => update("chosenMonthlyGross", 0)}
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Reset to £0
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {inputs.contributionMode === "netCost" && (
+                <>
+                  <CurrencyInput
+                    id="contribution"
+                    label="Monthly Net Cost"
+                    value={inputs.chosenMonthlyContribution}
+                    onChange={(v) => update("chosenMonthlyContribution", v)}
+                    max={sliderMax}
+                    step={50}
+                    helpText={`${formatCurrency(result.employeeContribution)} / year goes into pension`}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() =>
+                        update(
+                          "chosenMonthlyContribution",
+                          result.maxContributionMonthly
+                        )
+                      }
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Use max budget
+                    </button>
+                    <button
+                      onClick={() => update("chosenMonthlyContribution", 0)}
+                      className="flex-1 text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    >
+                      Reset to £0
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {contributionExceedsBudget && (
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    Your net cost ({formatCurrency(Math.round(result.effectiveTakeHomeGain / 12))}/mo)
+                    exceeds your available budget (
+                    {formatCurrency(result.maxContributionMonthly)}/mo). You'd
+                    need to reduce spending or savings to afford this.
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Pension options */}
@@ -151,27 +488,23 @@ function App() {
 
               {inputs.employerMatchEnabled && (
                 <div className="space-y-3 pl-1">
+                  <Toggle
+                    id="matchOnGross"
+                    label="Match on Gross Salary"
+                    description="Use qualifying earnings (£6,240–£50,270) when off"
+                    enabled={inputs.employerMatchOnGross}
+                    onChange={(v) => update("employerMatchOnGross", v)}
+                  />
                   <CurrencyInput
                     id="matchPct"
-                    label="Match Rate"
+                    label="Employer Contribution"
                     value={inputs.employerMatchPercent}
                     onChange={(v) => update("employerMatchPercent", v)}
                     prefix=""
                     suffix="%"
-                    max={20}
+                    max={30}
                     step={1}
-                    helpText="% of gross salary employer contributes"
-                  />
-                  <CurrencyInput
-                    id="matchCap"
-                    label="Match Cap"
-                    value={inputs.employerMatchCapPercent}
-                    onChange={(v) => update("employerMatchCapPercent", v)}
-                    prefix=""
-                    suffix="%"
-                    max={20}
-                    step={1}
-                    helpText="Maximum % of gross salary for match"
+                    helpText={`${formatCurrency(result.employerMatchMonthly)} / month (${formatCurrency(result.employerMatch)} / year)`}
                   />
                 </div>
               )}
@@ -193,7 +526,9 @@ function App() {
               <StatCard
                 title="Your Contribution"
                 subtitle={
-                  inputs.salarySacrifice ? "Via salary sacrifice" : "From net pay"
+                  inputs.salarySacrifice
+                    ? "Via salary sacrifice"
+                    : "From net pay"
                 }
                 yearlyValue={result.employeeContribution}
                 monthlyValue={result.employeeContributionMonthly}
@@ -206,6 +541,12 @@ function App() {
                 monthlyValue={Math.round(result.takeHomeWithPension / 12)}
               />
             </div>
+
+            {/* Monthly payslip */}
+            <PayslipComparison result={result} />
+
+            {/* Savings & Pension overview */}
+            <SavingsOverview result={result} />
 
             {/* Secondary stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -265,26 +606,19 @@ function App() {
                     -{formatCurrency(result.effectiveTakeHomeGain)}
                   </p>
                   <p className="text-xs text-slate-400">
-                    -{formatCurrency(Math.round(result.effectiveTakeHomeGain / 12))} / month
+                    -{formatCurrency(Math.round(result.effectiveTakeHomeGain / 12))}{" "}
+                    / month
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-                  Pension Pot Breakdown
-                </h3>
-                <PensionBreakdownChart result={result} />
-              </div>
-              <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-                  Salary Allocation
-                </h3>
-                <SalaryWaterfallChart result={result} />
-              </div>
+            {/* Salary allocation chart */}
+            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
+                Salary Allocation
+              </h3>
+              <SalaryWaterfallChart result={result} />
             </div>
 
             {/* Detailed comparison table */}
@@ -357,7 +691,8 @@ function App() {
 
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-4">
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          Based on UK 2024/25 tax year thresholds. For illustration only — not financial advice.
+          Based on UK 2024/25 tax year thresholds. For illustration only — not
+          financial advice.
         </p>
       </footer>
     </div>

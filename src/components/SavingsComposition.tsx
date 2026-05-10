@@ -4,11 +4,11 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip,
   BarChart,
   Bar,
   XAxis,
   YAxis,
+  Tooltip,
 } from "recharts";
 import { formatCurrency } from "../lib/pension";
 import type { PensionResult } from "../lib/pension";
@@ -17,34 +17,33 @@ interface Props {
   result: PensionResult;
 }
 
-export function PensionBreakdownChart({ result }: Props) {
+export function SavingsComposition({ result }: Props) {
   const [view, setView] = useState<"monthly" | "yearly">("monthly");
-  const { pensionBreakdown, totalPensionPot, totalPensionPotMonthly } = result;
+  const { savingsComposition, totalSavingsMonthly, totalSavingsYearly } = result;
 
-  const divisor = view === "monthly" ? 12 : 1;
-  const total = view === "monthly" ? totalPensionPotMonthly : totalPensionPot;
+  const total = view === "monthly" ? totalSavingsMonthly : totalSavingsYearly;
   const suffix = view === "monthly" ? "/ month" : "/ year";
 
-  const data = pensionBreakdown.map((entry) => ({
+  const data = savingsComposition.map((entry) => ({
     ...entry,
-    value: Math.round(entry.value / divisor),
+    value: view === "monthly" ? entry.monthlyValue : entry.yearlyValue,
   }));
 
   if (data.length === 0 || total === 0) {
     return (
       <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-          What's Going Into Your Pension
+          Total Savings & Investments
         </h3>
-        <div className="flex items-center justify-center h-48 text-slate-400 dark:text-slate-500">
-          <p className="text-sm">Set a contribution to see the breakdown</p>
+        <div className="flex items-center justify-center h-32 text-slate-400 dark:text-slate-500">
+          <p className="text-sm">Add savings or pension contributions to see the breakdown</p>
         </div>
       </div>
     );
   }
 
-  // For the stacked bar we need a single row with each source as a key
-  const barData: Record<string, number | string> = { name: "Pension" };
+  // Stacked bar data
+  const barData: Record<string, number | string> = { name: "Savings" };
   data.forEach((d) => {
     barData[d.label] = d.value;
   });
@@ -55,13 +54,12 @@ export function PensionBreakdownChart({ result }: Props) {
       <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-            What's Going Into Your Pension
+            Total Savings & Investments
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            All sources contributing to your pension pot
+            All your savings, ISA, and pension combined
           </p>
         </div>
-        {/* Monthly / Yearly toggle */}
         <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5 shrink-0">
           <button
             onClick={() => setView("monthly")}
@@ -122,7 +120,7 @@ export function PensionBreakdownChart({ result }: Props) {
                 <Bar
                   key={entry.label}
                   dataKey={entry.label}
-                  stackId="pension"
+                  stackId="savings"
                   fill={entry.color}
                   radius={
                     i === 0 && data.length === 1
@@ -140,9 +138,8 @@ export function PensionBreakdownChart({ result }: Props) {
         </div>
       </div>
 
-      {/* Donut + line items side by side */}
+      {/* Donut + line items */}
       <div className="px-6 pb-6 grid grid-cols-[140px_1fr] gap-4 items-center">
-        {/* Mini donut */}
         <div className="h-36">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -165,7 +162,6 @@ export function PensionBreakdownChart({ result }: Props) {
           </ResponsiveContainer>
         </div>
 
-        {/* Line items */}
         <div className="space-y-2.5">
           {data.map((entry) => {
             const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
@@ -190,96 +186,13 @@ export function PensionBreakdownChart({ result }: Props) {
         </div>
       </div>
 
-      {/* Net cost vs pot comparison */}
-      <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-            Your net cost vs what goes in
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Net cost to you {suffix}
-            </p>
-            <p className="text-lg font-bold text-rose-500">
-              {formatCurrency(view === "monthly" ? Math.round(result.effectiveTakeHomeGain / 12) : result.effectiveTakeHomeGain)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Into pension {suffix}
-            </p>
-            <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(total)}
-            </p>
-          </div>
-        </div>
-        {total > 0 && result.effectiveTakeHomeGain > 0 && (
-          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium">
-            You sacrifice {formatCurrency(view === "monthly" ? Math.round(result.effectiveTakeHomeGain / 12) : result.effectiveTakeHomeGain)} but {formatCurrency(total)} goes into your pension — a {Math.round(((total / (view === "monthly" ? result.effectiveTakeHomeGain / 12 : result.effectiveTakeHomeGain)) - 1) * 100)}% boost
-          </p>
-        )}
-
-        {/* Your contribution breakdown */}
-        {result.employeeContribution > 0 && (
-          <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-600/40">
-            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2.5">
-              Your contribution breakdown
-            </p>
-            <div className="space-y-1.5">
-              {/* Net cost */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-rose-400" />
-                  <span className="text-xs text-slate-600 dark:text-slate-400">
-                    Net cost to you
-                  </span>
-                </div>
-                <span className="text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
-                  {formatCurrency(view === "monthly" ? Math.round(result.effectiveTakeHomeGain / 12) : result.effectiveTakeHomeGain)}
-                </span>
-              </div>
-              {/* Tax relief */}
-              {result.taxRelief > 0 && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-400">
-                      Income tax savings
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
-                    {formatCurrency(view === "monthly" ? Math.round(result.taxRelief / 12) : result.taxRelief)}
-                  </span>
-                </div>
-              )}
-              {/* Employee NI saving */}
-              {result.employeeNiSaving > 0 && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-sky-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-400">
-                      Employee NI savings
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
-                    {formatCurrency(view === "monthly" ? Math.round(result.employeeNiSaving / 12) : result.employeeNiSaving)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Alternate view totals */}
       <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
         <span className="text-xs text-slate-500 dark:text-slate-400">
           {view === "monthly" ? "Yearly total" : "Monthly total"}
         </span>
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-          {formatCurrency(view === "monthly" ? totalPensionPot : totalPensionPotMonthly)}
+          {formatCurrency(view === "monthly" ? totalSavingsYearly : totalSavingsMonthly)}
           <span className="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1">
             {view === "monthly" ? "/ year" : "/ month"}
           </span>
