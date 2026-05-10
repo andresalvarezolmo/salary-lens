@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slate-850: #172033;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-slate-50);
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: var(--color-slate-900);
+  }
+}
