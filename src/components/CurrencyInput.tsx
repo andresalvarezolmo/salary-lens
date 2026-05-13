@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useTheme } from "../lib/theme";
 
 interface CurrencyInputProps {
   label: string;
@@ -25,6 +26,8 @@ export function CurrencyInput({
   max,
   step = 100,
 }: CurrencyInputProps) {
+  const theme = useTheme();
+
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const raw = e.target.value.replace(/[^0-9.]/g, "");
@@ -60,7 +63,7 @@ export function CurrencyInput({
           id={id}
           value={value.toLocaleString("en-GB")}
           onChange={handleChange}
-          className={`w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm py-2.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors ${
+          className={`w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm py-2.5 focus:ring-2 ${theme.focusRing} ${theme.focusBorder} outline-none transition-colors ${
             prefix ? "pl-8" : "pl-3"
           } ${suffix ? "pr-12" : "pr-3"}`}
         />
@@ -78,7 +81,7 @@ export function CurrencyInput({
           step={step}
           value={value}
           onChange={handleSlider}
-          className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-indigo-500"
+          className={`w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer ${theme.slider}`}
         />
       )}
       {helpText && (

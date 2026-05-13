@@ -17,6 +17,7 @@ import {
   SlidersHorizontal,
   Plus,
 } from "lucide-react";
+import { getTheme, ThemeContext } from "./lib/theme";
 
 let nextId = 1;
 
@@ -110,6 +111,7 @@ function App() {
   }, []);
 
   const result = useMemo(() => calculatePension(inputs), [inputs]);
+  const theme = useMemo(() => getTheme(inputs.scottishTax), [inputs.scottishTax]);
 
   // On first load, seed sliders to max available (only for netCost/gross modes)
   const [hasInitialised, setHasInitialised] = useState(false);
@@ -133,12 +135,16 @@ function App() {
   );
 
   return (
+    <ThemeContext.Provider value={theme}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
+      {/* Accent bar */}
+      <div className={`h-1 ${theme.headerBar} transition-colors duration-300`} />
+
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-indigo-100 dark:bg-indigo-500/20">
-            <PiggyBank className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+          <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconBgDark} transition-colors duration-300`}>
+            <PiggyBank className={`w-6 h-6 ${theme.iconText} ${theme.iconTextDark} transition-colors duration-300`} />
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -158,7 +164,7 @@ function App() {
             {/* Income */}
             <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-500" />
+                <TrendingUp className={`w-4 h-4 ${theme.iconText}`} />
                 Income
               </h2>
               <CurrencyInput
@@ -189,7 +195,7 @@ function App() {
                 </h2>
                 <button
                   onClick={addSpending}
-                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                  className={`flex items-center gap-1 text-xs font-medium ${theme.accent} ${theme.accentDark} hover:opacity-80 transition-colors`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add
@@ -237,7 +243,7 @@ function App() {
                 </h2>
                 <button
                   onClick={addSavings}
-                  className="flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+                  className={`flex items-center gap-1 text-xs font-medium ${theme.accent} ${theme.accentDark} hover:opacity-80 transition-colors`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                   Add
@@ -278,20 +284,20 @@ function App() {
             </section>
 
             {/* Available summary */}
-            <div className="rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 p-4 space-y-1.5">
+            <div className={`rounded-2xl ${theme.accentBgLight} ${theme.accentBgLightDark} border ${theme.accentBorder} ${theme.accentBorderDark} p-4 space-y-1.5 transition-colors duration-300`}>
               <div className="flex justify-between text-sm">
-                <span className="text-indigo-700 dark:text-indigo-300">
+                <span className={`${theme.accentText} ${theme.accentTextDark}`}>
                   Available for pension (net)
                 </span>
-                <span className="font-semibold text-indigo-700 dark:text-indigo-300">
+                <span className={`font-semibold ${theme.accentText} ${theme.accentTextDark}`}>
                   {formatCurrency(result.availableForPension)} / yr
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-indigo-600/70 dark:text-indigo-400/70">
+                <span className={`${theme.accentTextMuted} ${theme.accentTextMutedDark}`}>
                   Max you can afford
                 </span>
-                <span className="font-medium text-indigo-600/70 dark:text-indigo-400/70">
+                <span className={`font-medium ${theme.accentTextMuted} ${theme.accentTextMutedDark}`}>
                   {formatCurrency(result.maxContributionMonthly)} / mo
                 </span>
               </div>
@@ -300,7 +306,7 @@ function App() {
             {/* Contribution amount */}
             <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-indigo-500" />
+                <SlidersHorizontal className={`w-4 h-4 ${theme.iconText}`} />
                 Your Contribution
               </h2>
 
@@ -520,7 +526,6 @@ function App() {
                 subtitle="Everything going in per year"
                 yearlyValue={result.totalPensionPot}
                 monthlyValue={result.totalPensionPotMonthly}
-                color="indigo"
                 highlight
               />
               <StatCard
@@ -532,7 +537,7 @@ function App() {
                 }
                 yearlyValue={result.employeeContribution}
                 monthlyValue={result.employeeContributionMonthly}
-                color="purple"
+                variant="secondary"
                 highlight
               />
               <StatCard
@@ -691,11 +696,12 @@ function App() {
 
       <footer className="mt-auto border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 py-4">
         <p className="text-center text-xs text-slate-400 dark:text-slate-500">
-          Based on UK 2024/25 tax year thresholds. For illustration only — not
+          Based on UK 2025/26 tax year thresholds. For illustration only — not
           financial advice.
         </p>
       </footer>
     </div>
+    </ThemeContext.Provider>
   );
 }
 

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { formatCurrency } from "../lib/pension";
 import type { PensionResult } from "../lib/pension";
+import { useTheme } from "../lib/theme";
 
 interface Props {
   result: PensionResult;
@@ -175,6 +176,7 @@ function AllSavingsCard({ result }: Props) {
 
 /* ── Pension Breakdown Card ── */
 function PensionBreakdownCard({ result }: Props) {
+  const theme = useTheme();
   const [view, setView] = useState<"monthly" | "yearly">("monthly");
   const { pensionBreakdown, totalPensionPot, totalPensionPotMonthly } = result;
   const divisor = view === "monthly" ? 12 : 1;
@@ -231,10 +233,10 @@ function PensionBreakdownCard({ result }: Props) {
             </div>
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400">Into pension {suffix}</p>
-              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(total)}</p>
+              <p className={`text-lg font-bold ${theme.accent} ${theme.accentDark}`}>{formatCurrency(total)}</p>
             </div>
           </div>
-          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-2 font-medium">
+          <p className={`text-xs ${theme.accent} ${theme.accentDark} mt-2 font-medium`}>
             You sacrifice {formatCurrency(view === "monthly" ? Math.round(result.effectiveTakeHomeGain / 12) : result.effectiveTakeHomeGain)} but {formatCurrency(total)} goes into your pension — a {Math.round(((total / (view === "monthly" ? result.effectiveTakeHomeGain / 12 : result.effectiveTakeHomeGain)) - 1) * 100)}% boost
           </p>
 

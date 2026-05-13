@@ -1,5 +1,6 @@
 import { Plus, X } from "lucide-react";
 import type { BudgetCategory } from "../lib/pension";
+import { useTheme } from "../lib/theme";
 
 interface Props {
   categories: BudgetCategory[];
@@ -16,6 +17,7 @@ export function BudgetCategoryList({
   onRemove,
   addLabel = "Add category",
 }: Props) {
+  const theme = useTheme();
   return (
     <div className="space-y-3">
       {categories.map((cat) => (
@@ -51,7 +53,7 @@ export function BudgetCategoryList({
                   const raw = e.target.value.replace(/[^0-9.]/g, "");
                   onUpdate(cat.id, "monthlyAmount", parseFloat(raw) || 0);
                 }}
-                className="w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm py-2 pl-8 pr-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-colors"
+                className={`w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm py-2 pl-8 pr-3 focus:ring-2 ${theme.focusRing} ${theme.focusBorder} outline-none transition-colors`}
               />
             </div>
           </div>
@@ -60,7 +62,7 @@ export function BudgetCategoryList({
 
       <button
         onClick={onAdd}
-        className="w-full py-2 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400 transition-colors flex items-center justify-center gap-1.5 text-sm"
+        className="w-full py-2 rounded-lg border-2 border-dashed border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-slate-300 hover:text-slate-600 dark:hover:border-slate-500 dark:hover:text-slate-400 transition-colors flex items-center justify-center gap-1.5 text-sm"
       >
         <Plus className="w-4 h-4" />
         {addLabel}

@@ -1,36 +1,31 @@
 import { formatCurrency } from "../lib/pension";
+import { useTheme } from "../lib/theme";
 
 interface StatCardProps {
   title: string;
   yearlyValue: number;
   monthlyValue: number;
-  color?: string;
   highlight?: boolean;
   subtitle?: string;
+  variant?: "primary" | "secondary";
 }
 
 export function StatCard({
   title,
   yearlyValue,
   monthlyValue,
-  color = "indigo",
   highlight = false,
   subtitle,
+  variant = "primary",
 }: StatCardProps) {
-  const colorMap: Record<string, string> = {
-    indigo: "from-indigo-500 to-indigo-600",
-    green: "from-emerald-500 to-emerald-600",
-    amber: "from-amber-500 to-amber-600",
-    cyan: "from-cyan-500 to-cyan-600",
-    purple: "from-purple-500 to-purple-600",
-  };
+  const theme = useTheme();
 
   if (highlight) {
+    const from = variant === "secondary" ? theme.gradientAltFrom : theme.gradientFrom;
+    const to = variant === "secondary" ? theme.gradientAltTo : theme.gradientTo;
     return (
       <div
-        className={`rounded-2xl bg-gradient-to-br ${
-          colorMap[color] || colorMap.indigo
-        } p-5 text-white shadow-lg`}
+        className={`rounded-2xl bg-gradient-to-br ${from} ${to} p-5 text-white shadow-lg`}
       >
         <p className="text-sm font-medium text-white/80">{title}</p>
         {subtitle && (

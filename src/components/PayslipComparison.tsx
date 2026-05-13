@@ -1,6 +1,7 @@
 import { formatCurrency } from "../lib/pension";
 import type { PensionResult } from "../lib/pension";
 import { ArrowRight } from "lucide-react";
+import { useTheme } from "../lib/theme";
 
 interface Props {
   result: PensionResult;
@@ -40,6 +41,7 @@ function DiffBadge({ value }: { value: number }) {
 }
 
 export function PayslipComparison({ result }: Props) {
+  const theme = useTheme();
   const { payslip } = result;
 
   return (
@@ -115,20 +117,20 @@ export function PayslipComparison({ result }: Props) {
       </div>
 
       {/* Pension pot footer */}
-      <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-700 bg-indigo-50 dark:bg-indigo-500/10">
+      <div className={`px-5 py-4 border-t border-slate-200 dark:border-slate-700 ${theme.accentBgLight} ${theme.accentBgLightDark}`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-300">
+            <p className={`text-sm font-semibold ${theme.accentText} ${theme.accentTextDark}`}>
               Total into Pension Pot
             </p>
-            <p className="text-xs text-indigo-600/70 dark:text-indigo-400/60 mt-0.5">
+            <p className={`text-xs ${theme.accentTextMuted} ${theme.accentTextMutedDark} mt-0.5`}>
               Including employer match & NI savings
             </p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+            <p className={`text-lg font-bold ${theme.accent} ${theme.accentDark}`}>
               {formatCurrency(result.totalPensionPotMonthly)}
-              <span className="text-sm font-normal text-indigo-400 dark:text-indigo-500">
+              <span className={`text-sm font-normal ${theme.accentTextMuted} ${theme.accentTextMutedDark}`}>
                 {" "}/ month
               </span>
             </p>

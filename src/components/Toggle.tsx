@@ -1,3 +1,5 @@
+import { useTheme } from "../lib/theme";
+
 interface ToggleProps {
   label: string;
   description?: string;
@@ -7,6 +9,7 @@ interface ToggleProps {
 }
 
 export function Toggle({ label, description, enabled, onChange, id }: ToggleProps) {
+  const theme = useTheme();
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
@@ -27,8 +30,8 @@ export function Toggle({ label, description, enabled, onChange, id }: ToggleProp
         role="switch"
         aria-checked={enabled}
         onClick={() => onChange(!enabled)}
-        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${
-          enabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-slate-600"
+        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 ${theme.focusRing} focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${
+          enabled ? theme.toggle : "bg-slate-300 dark:bg-slate-600"
         }`}
       >
         <span
