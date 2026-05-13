@@ -48,6 +48,135 @@ export const TAX_CONFIG = {
 
 export type StudentLoanPlan = "none" | "plan1" | "plan2" | "plan4" | "plan5";
 
+// ── Tax Code parsing ──
+
+export interface ParsedTaxCode {
+  isScottish: boolean;
+  /** 'allowance' = standard code with personal allowance (incl 0T),
+   *  'kcode' = K-prefix code (benefits exceed allowance),
+   *  'flat' = BR/D0/D1 flat rate on all income,
+   *  'notax' = NT code, no tax deducted */
+  mode: "allowance" | "kcode" | "flat" | "notax";
+  /** Personal allowance derived from the code (mode=allowance). 0 for 0T. */
+  personalAllowance: number;
+  /** Amount added to taxable income (mode=kcode). */
+  kAddition: number;
+  /** Flat tax rate applied to all income (mode=flat). */
+  flatRate: number;
+  /** Human-readable description of what the code means. */
+  description: string;
+  /** The normalised code (e.g. "S1257L"). */
+  raw: string;
+}
+
+/**
+ * Parse a UK PAYE tax code string into its components.
+ *
+ * Handles:
+ *  - Standard codes: 1257L, S1257L, C1257L, 1383M, 1194N, etc.
+ *  - Zero-allowance: 0T, S0T
+ *  - K codes: K500, SK500
+ *  - Flat-rate: BR, SBR, D0, SD0, D1, SD1
+ *  - No-tax: NT
+ *  - Strips W1/M1/X emergency suffixes
+ *
+ * Returns null for invalid/empty codes.
+ */
+export function parseTaxCode(code: string): ParsedTaxCode | null {
+  let raw = code.trim().toUpperCase().replace(/\s+/g, "");
+  if (!raw) return null;
+
+  // Strip emergency/non-cumulative suffixes
+  raw = raw.replace(/(W1|M1|X)$/, "");
+
+  let remaining = raw;
+  let isScottish = false;
+
+  // S prefix = Scottish, C prefix = Welsh (treated as rUK for tax bands)
+  if (remaining.startsWith("S") && remaining.length > 1 && remaining[1] !== "T") {
+    // Avoid matching "ST..." unless it's a special code starting with S
+    // Check if after S we get a valid pattern (not just any S-starting word)
+    isScottish = true;
+    remaining = remaining.slice(1);
+  } else if (remaining.startsWith("C") && remaining.length > 1) {
+    remaining = remaining.slice(1);
+  }
+
+  // Special flat-rate codes
+  if (remaining === "BR") {
+    return {
+      isScottish, mode: "flat", personalAllowance: 0, kAddition: 0,
+      flatRate: isScottish ? 0.20 : 0.20,
+      description: "All income taxed at basic rate (20%)", raw,
+    };
+  }
+  if (remaining === "D0") {
+    return {
+      isScottish, mode: "flat", personalAllowance: 0, kAddition: 0,
+      flatRate: isScottish ? 0.42 : 0.40,
+      description: isScottish
+        ? "All income taxed at Scottish higher rate (42%)"
+        : "All income taxed at higher rate (40%)",
+      raw,
+    };
+  }
+  if (remaining === "D1") {
+    return {
+      isScottish, mode: "flat", personalAllowance: 0, kAddition: 0,
+      flatRate: isScottish ? 0.47 : 0.45,
+      description: isScottish
+        ? "All income taxed at Scottish top rate (47%)"
+        : "All income taxed at additional rate (45%)",
+      raw,
+    };
+  }
+  if (remaining === "NT") {
+    return {
+      isScottish, mode: "notax", personalAllowance: 0, kAddition: 0, flatRate: 0,
+      description: "No tax deducted", raw,
+    };
+  }
+
+  // Zero-allowance: 0T
+  if (remaining === "0T") {
+    return {
+      isScottish, mode: "allowance", personalAllowance: 0, kAddition: 0, flatRate: 0,
+      description: "No personal allowance — graduated rates apply", raw,
+    };
+  }
+
+  // K codes: K followed by digits
+  const kMatch = remaining.match(/^K(\d+)$/);
+  if (kMatch) {
+    const kAddition = parseInt(kMatch[1], 10) * 10;
+    return {
+      isScottish, mode: "kcode", personalAllowance: 0, kAddition, flatRate: 0,
+      description: `£${kAddition.toLocaleString()} added to taxable income (benefits exceed allowance)`,
+      raw,
+    };
+  }
+
+  // Standard codes: digits + letter suffix (L, M, N, T, Y)
+  const stdMatch = remaining.match(/^(\d+)([LMNTY])$/);
+  if (stdMatch) {
+    const num = parseInt(stdMatch[1], 10);
+    const letter = stdMatch[2];
+    const personalAllowance = num * 10;
+
+    let desc = `Personal allowance: £${personalAllowance.toLocaleString()}`;
+    if (letter === "M") desc += " (Marriage Allowance received)";
+    else if (letter === "N") desc += " (Marriage Allowance transferred)";
+    else if (personalAllowance === TAX_CONFIG.personalAllowance) desc += " (standard)";
+
+    return {
+      isScottish, mode: "allowance", personalAllowance, kAddition: 0, flatRate: 0,
+      description: desc, raw,
+    };
+  }
+
+  return null; // unrecognised format
+}
+
 export interface BudgetCategory {
   id: string;
   label: string;
@@ -84,6 +213,8 @@ export interface PensionInputs {
   studentLoanPlan: StudentLoanPlan;
   /** Whether the user also has a postgraduate loan (stacks with undergraduate) */
   hasPostgradLoan: boolean;
+  /** Raw PAYE tax code string (e.g. "1257L", "S1257L", "BR", "K500"). Empty = auto-calculate. */
+  taxCode: string;
 }
 
 export interface PayslipLine {
@@ -174,6 +305,11 @@ export interface PensionResult {
   }[];
   totalSavingsMonthly: number;
   totalSavingsYearly: number;
+
+  // Tax code
+  parsedTaxCode: ParsedTaxCode | null;
+  /** Whether Scottish tax rates are used (from tax code S-prefix or toggle). */
+  effectiveScottish: boolean;
 }
 
 function getPersonalAllowance(grossSalary: number): number {
@@ -187,8 +323,8 @@ function getPersonalAllowance(grossSalary: number): number {
   return pa;
 }
 
-function calculateIncomeTaxRUK(taxableIncome: number, grossSalary: number): number {
-  const personalAllowance = getPersonalAllowance(grossSalary);
+function calculateIncomeTaxRUK(taxableIncome: number, grossSalary: number, paOverride?: number): number {
+  const personalAllowance = paOverride !== undefined ? paOverride : getPersonalAllowance(grossSalary);
   const taxable = Math.max(0, taxableIncome - personalAllowance);
 
   const basicBand = Math.max(
@@ -211,8 +347,8 @@ function calculateIncomeTaxRUK(taxableIncome: number, grossSalary: number): numb
   );
 }
 
-function calculateIncomeTaxScottish(taxableIncome: number, grossSalary: number): number {
-  const personalAllowance = getPersonalAllowance(grossSalary);
+function calculateIncomeTaxScottish(taxableIncome: number, grossSalary: number, paOverride?: number): number {
+  const personalAllowance = paOverride !== undefined ? paOverride : getPersonalAllowance(grossSalary);
   const taxable = Math.max(0, taxableIncome - personalAllowance);
 
   if (taxable <= 0) return 0;
@@ -237,10 +373,30 @@ function calculateIncomeTaxScottish(taxableIncome: number, grossSalary: number):
   return tax;
 }
 
-function calculateIncomeTax(taxableIncome: number, grossSalary: number, scottish: boolean): number {
+function calculateIncomeTax(taxableIncome: number, grossSalary: number, scottish: boolean, paOverride?: number): number {
   return scottish
-    ? calculateIncomeTaxScottish(taxableIncome, grossSalary)
-    : calculateIncomeTaxRUK(taxableIncome, grossSalary);
+    ? calculateIncomeTaxScottish(taxableIncome, grossSalary, paOverride)
+    : calculateIncomeTaxRUK(taxableIncome, grossSalary, paOverride);
+}
+
+/**
+ * Compute income tax respecting a parsed tax code (if provided).
+ * When no tax code is given, falls back to the standard calculation with dynamic PA taper.
+ */
+function computeIncomeTax(income: number, scottish: boolean, taxCode: ParsedTaxCode | null): number {
+  if (!taxCode) return calculateIncomeTax(income, income, scottish);
+  switch (taxCode.mode) {
+    case "notax":
+      return 0;
+    case "flat":
+      return Math.max(0, income) * taxCode.flatRate;
+    case "kcode":
+      // K code: add the K amount to income, zero personal allowance, graduated rates
+      return calculateIncomeTax(income + taxCode.kAddition, income + taxCode.kAddition, scottish, 0);
+    case "allowance":
+      // Fixed personal allowance from the code (no dynamic taper)
+      return calculateIncomeTax(income, income, scottish, taxCode.personalAllowance);
+  }
 }
 
 function calculateEmployeeNi(earnings: number): number {
@@ -292,6 +448,7 @@ function netCostToGrossContribution(
   scottishTax: boolean,
   studentLoanPlan: StudentLoanPlan,
   hasPostgradLoan: boolean,
+  taxCode: ParsedTaxCode | null,
 ): number {
   if (desiredNetCost <= 0) return 0;
   let lo = 0;
@@ -299,7 +456,7 @@ function netCostToGrossContribution(
   for (let i = 0; i < 50; i++) {
     const mid = (lo + hi) / 2;
     const reducedGross = grossSalary - mid;
-    const taxAfter = calculateIncomeTax(reducedGross, reducedGross, scottishTax);
+    const taxAfter = computeIncomeTax(reducedGross, scottishTax, taxCode);
     const niAfter = calculateEmployeeNi(reducedGross);
     const slAfter = calculateStudentLoan(reducedGross, studentLoanPlan);
     const pgAfter = hasPostgradLoan ? calculatePostgradLoan(reducedGross) : 0;
@@ -332,7 +489,12 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     employeeContributionPercent,
     studentLoanPlan,
     hasPostgradLoan,
+    taxCode,
   } = inputs;
+
+  // Parse tax code (if provided) and determine effective Scottish flag
+  const parsedTaxCode = parseTaxCode(taxCode);
+  const effectiveScottish = parsedTaxCode ? parsedTaxCode.isScottish : scottishTax;
 
   const totalMonthlySpending = spendingCategories.reduce((sum, c) => sum + c.monthlyAmount, 0);
   const totalMonthlySavings = savingsCategories.reduce((sum, c) => sum + c.monthlyAmount, 0);
@@ -345,7 +507,7 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
   );
 
   // Tax, NI, and student loan without any pension
-  const incomeTaxNoPension = calculateIncomeTax(grossSalary, grossSalary, scottishTax);
+  const incomeTaxNoPension = computeIncomeTax(grossSalary, effectiveScottish, parsedTaxCode);
   const employeeNiNoPension = calculateEmployeeNi(grossSalary);
   const studentLoanNoPension = calculateStudentLoan(grossSalary, studentLoanPlan);
   const postgradLoanNoPension = hasPostgradLoan ? calculatePostgradLoan(grossSalary) : 0;
@@ -373,8 +535,8 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     const chosenNetCost = Math.max(0, chosenMonthlyContribution * 12);
     if (salarySacrifice) {
       employeeContribution = netCostToGrossContribution(
-        grossSalary, chosenNetCost, takeHomeNoPension, scottishTax,
-        studentLoanPlan, hasPostgradLoan
+        grossSalary, chosenNetCost, takeHomeNoPension, effectiveScottish,
+        studentLoanPlan, hasPostgradLoan, parsedTaxCode
       );
     } else {
       employeeContribution = chosenNetCost;
@@ -428,11 +590,7 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
   const taxableAfterPension = salarySacrifice
     ? grossSalary - employeeContribution
     : grossSalary;
-  const incomeTaxWithPension = calculateIncomeTax(
-    taxableAfterPension,
-    taxableAfterPension,
-    scottishTax,
-  );
+  const incomeTaxWithPension = computeIncomeTax(taxableAfterPension, effectiveScottish, parsedTaxCode);
   const employeeNiWithPension = salarySacrifice
     ? calculateEmployeeNi(taxableAfterPension)
     : employeeNiNoPension;
@@ -457,7 +615,7 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
 
   // Max budget calculations — "given everything else, what's the max for this one?"
   const maxGrossForBudget = salarySacrifice
-    ? netCostToGrossContribution(grossSalary, availableForPension, takeHomeNoPension, scottishTax, studentLoanPlan, hasPostgradLoan)
+    ? netCostToGrossContribution(grossSalary, availableForPension, takeHomeNoPension, effectiveScottish, studentLoanPlan, hasPostgradLoan, parsedTaxCode)
     : availableForPension;
   const maxGrossCapped = Math.min(Math.max(0, maxGrossForBudget), TAX_CONFIG.annualAllowance, grossSalary);
   const maxEmployeePercent = qualifyingEarnings > 0
@@ -697,6 +855,9 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     savingsComposition,
     totalSavingsMonthly,
     totalSavingsYearly,
+
+    parsedTaxCode,
+    effectiveScottish,
   };
 }
 

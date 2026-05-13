@@ -41,6 +41,8 @@ This is the most important file in the project. It contains:
 - **`netCostToGrossContribution()`** -- Binary search that converts a desired net cost (take-home reduction) into the gross salary sacrifice that produces that exact net cost. Needed because tax/NI bands make this relationship non-linear.
 - **`calculateStudentLoan()`** -- Calculates undergraduate student loan repayment for a given plan (Plan 1/2/4/5). 9% of earnings above the plan-specific threshold.
 - **`calculatePostgradLoan()`** -- Calculates postgraduate loan repayment. 6% of earnings above £21,000. Stacks independently with undergraduate loans.
+- **`parseTaxCode()`** -- Parses a UK PAYE tax code string into a `ParsedTaxCode` object. Handles standard codes, K codes, flat-rate codes (BR/D0/D1), NT, 0T, and S/C prefixes.
+- **`computeIncomeTax()`** -- Wrapper that routes income tax calculation through the parsed tax code (flat rate, K code, fixed allowance, or no-tax), falling back to standard calculation when no code is provided.
 - **Helper functions** -- `calculateIncomeTaxRUK()`, `calculateIncomeTaxScottish()`, `calculateEmployeeNi()`, `calculateEmployerNi()`, `getPersonalAllowance()`.
 
 ### `src/App.tsx` -- State and Layout
@@ -90,6 +92,7 @@ interface PensionInputs {
   chosenMonthlyGross: number;             // Gross mode: monthly gross salary sacrifice
   studentLoanPlan: StudentLoanPlan;       // "none" | "plan1" | "plan2" | "plan4" | "plan5"
   hasPostgradLoan: boolean;               // Whether user has a postgraduate loan
+  taxCode: string;                        // PAYE tax code (e.g. "1257L", "S1257L", "K500", "BR")
 }
 ```
 
@@ -104,6 +107,7 @@ The result interface has ~40 fields. Key groups:
 - **Student loans**: `studentLoanWithPension`, `postgradLoanWithPension`, `studentLoanSaving`, `postgradLoanSaving`
 - **Totals**: `totalPensionPot` (all sources combined)
 - **After pension**: `takeHomeWithPension`, `incomeTaxWithPension`, `effectiveTakeHomeGain`, `taxRelief`
+- **Tax code**: `parsedTaxCode` (parsed result or null), `effectiveScottish` (resolved from code or toggle)
 - **Chart data**: `pensionBreakdown[]`, `savingsComposition[]`, `payslip[]`
 
 All monetary values are annual unless suffixed with `Monthly`.

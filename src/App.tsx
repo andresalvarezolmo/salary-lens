@@ -18,6 +18,8 @@ import {
   Plus,
   GraduationCap,
   ChevronDown,
+  FileText,
+  AlertCircle,
 } from "lucide-react";
 import { getTheme, ThemeContext } from "./lib/theme";
 
@@ -49,8 +51,10 @@ function App() {
     chosenMonthlyGross: 0,
     studentLoanPlan: "none",
     hasPostgradLoan: false,
+    taxCode: "",
   });
   const [studentLoanOpen, setStudentLoanOpen] = useState(false);
+  const [taxCodeOpen, setTaxCodeOpen] = useState(false);
 
   const update = <K extends keyof PensionInputs>(
     key: K,
@@ -116,7 +120,7 @@ function App() {
   }, []);
 
   const result = useMemo(() => calculatePension(inputs), [inputs]);
-  const theme = useMemo(() => getTheme(inputs.scottishTax), [inputs.scottishTax]);
+  const theme = useMemo(() => getTheme(result.effectiveScottish), [result.effectiveScottish]);
 
   // On first load, seed sliders to max available (only for netCost/gross modes)
   const [hasInitialised, setHasInitialised] = useState(false);
@@ -180,15 +184,65 @@ function App() {
                 max={300000}
                 step={1000}
               />
-              <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
-                <Toggle
-                  id="scottish"
-                  label="Scottish Tax Rates"
-                  description="Use Scottish income tax bands"
-                  enabled={inputs.scottishTax}
-                  onChange={(v) => update("scottishTax", v)}
-                />
-              </div>
+
+              {/* Scottish Tax toggle — hidden when tax code determines it */}
+              {!result.parsedTaxCode && (
+                <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                  <Toggle
+                    id="scottish"
+                    label="Scottish Tax Rates"
+                    description="Use Scottish income tax bands"
+                    enabled={inputs.scottishTax}
+                    onChange={(v) => update("scottishTax", v)}
+                  />
+                </div>
+              )}
+            </section>
+
+            {/* Tax Code — collapsible */}
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setTaxCodeOpen((o) => !o)}
+                className="w-full px-5 py-4 flex items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              >
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-400" />
+                  Tax Code
+                </h2>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${taxCodeOpen ? "rotate-180" : ""}`} />
+              </button>
+              {taxCodeOpen && (
+                <div className="px-5 pb-5 space-y-3 border-t border-slate-100 dark:border-slate-700 pt-4">
+                  <input
+                    id="taxCode"
+                    type="text"
+                    value={inputs.taxCode}
+                    onChange={(e) => update("taxCode", e.target.value)}
+                    placeholder="e.g. 1257L"
+                    className={`w-full text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 ${theme.focusRing} transition-colors uppercase`}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  {inputs.taxCode.trim() && (
+                    <div>
+                      {result.parsedTaxCode ? (
+                        <p className={`text-xs ${theme.accent} ${theme.accentDark}`}>
+                          {result.parsedTaxCode.description}
+                          {result.parsedTaxCode.isScottish && " · Scottish taxpayer"}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-500 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Unrecognised tax code — using standard allowance
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Find it on your payslip or P60. Leave blank to auto-calculate.
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Spending */}

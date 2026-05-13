@@ -196,6 +196,51 @@ The binary search in `netCostToGrossContribution()` includes student loan repaym
 
 ---
 
+## Tax Codes
+
+The app optionally accepts a PAYE tax code, which overrides the default personal allowance calculation. Tax codes are found on payslips and P60 forms. When no code is entered, the standard personal allowance (£12,570 with dynamic taper) is used.
+
+### How tax codes work
+
+A tax code tells your employer how much tax-free income you're entitled to. The number is multiplied by 10 to give your personal allowance. The letter suffix indicates the type of allowance.
+
+### Supported formats
+
+| Format | Example | Meaning |
+|--------|---------|---------|
+| Number + L | 1257L | Standard personal allowance (£12,570) |
+| Number + M | 1383M | Marriage Allowance received (£13,830) |
+| Number + N | 1194N | Marriage Allowance transferred (£11,940) |
+| Number + T/Y | 1257T | HMRC review needed / age-related |
+| 0T | 0T | No personal allowance, graduated rates |
+| K + Number | K500 | £5,000 added to taxable income (benefits exceed allowance) |
+| BR | BR | All income taxed at basic rate (20%) |
+| D0 | D0 | All income taxed at higher rate (40%) |
+| D1 | D1 | All income taxed at additional rate (45%) |
+| NT | NT | No tax deducted |
+| S prefix | S1257L | Scottish taxpayer (uses Scottish bands) |
+| C prefix | C1257L | Welsh taxpayer (same bands as rUK) |
+
+Emergency suffixes (W1, M1, X) are stripped — they affect in-year PAYE timing but not the annual tax calculation.
+
+### How tax codes affect the calculator
+
+- **Standard codes** (1257L, 1383M, etc.): The code's personal allowance is used directly, with no dynamic taper. HMRC has already accounted for taper and adjustments when issuing the code.
+- **K codes**: The K amount is added to taxable income (effectively a negative allowance). This happens when benefits in kind (company car, medical insurance) exceed the standard allowance.
+- **Flat-rate codes** (BR, D0, D1): All income is taxed at a single rate. No personal allowance applies. Used for second jobs or specific arrangements.
+- **NT**: No tax is deducted. Used for certain diplomatic or exempt income.
+- **S prefix**: Automatically selects Scottish income tax bands, hiding the Scottish Tax Rates toggle. For SD0, the Scottish higher rate (42%) is used instead of rUK's 40%.
+
+### Important notes
+
+- Tax codes affect income tax only — NI and student loan calculations are unaffected.
+- When salary sacrifice reduces gross pay, the same tax code allowance is used (employers don't change codes mid-year for pension contributions).
+- If the user enters a code that adjusts PA below the standard £12,570 (e.g. due to benefits in kind), the calculator correctly shows the higher tax burden.
+
+Implemented in `parseTaxCode()` and `computeIncomeTax()`.
+
+---
+
 ## Sources
 
 - [HMRC Income Tax rates 2025/26](https://www.gov.uk/income-tax-rates)
@@ -205,3 +250,5 @@ The binary search in `netCostToGrossContribution()` includes student loan repaym
 - [HMRC Annual Allowance](https://www.gov.uk/tax-on-your-private-pension/annual-allowance)
 - [Student Loan repayment thresholds 2025/26](https://www.gov.uk/repaying-your-student-loan/what-you-pay)
 - [Postgraduate Loan repayment](https://www.gov.uk/repaying-your-student-loan/what-you-pay)
+- [HMRC Tax codes explained](https://www.gov.uk/tax-codes)
+- [HMRC K tax codes](https://www.gov.uk/employee-tax-codes)
