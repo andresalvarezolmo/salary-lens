@@ -239,7 +239,7 @@ function App() {
                     </div>
                   )}
                   <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Find it on your payslip or P60. Leave blank to auto-calculate.
+                    Find it on your payslip or P60. Leave blank to use the default tax code 1257L.
                   </p>
                 </div>
               )}
