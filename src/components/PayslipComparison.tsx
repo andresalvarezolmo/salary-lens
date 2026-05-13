@@ -29,7 +29,7 @@ function DiffBadge({ value }: { value: number }) {
   const isPositive = value > 0;
   return (
     <span
-      className={`inline-flex items-center gap-0.5 text-xs font-medium px-2 py-0.5 rounded-full ${
+      className={`inline-flex items-center gap-0.5 text-xs font-medium px-1.5 sm:px-2 py-0.5 rounded-full ${
         isPositive
           ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
           : "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
@@ -47,7 +47,7 @@ export function PayslipComparison({ result }: Props) {
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
+      <div className="px-4 sm:px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
           Monthly Payslip Comparison
         </h3>
@@ -57,12 +57,13 @@ export function PayslipComparison({ result }: Props) {
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-5 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+      <div className="grid grid-cols-[1fr_auto_auto_auto] sm:grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 sm:gap-x-4 px-4 sm:px-5 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
         <div>&nbsp;</div>
-        <div className="w-24 text-right">Before</div>
-        <div className="w-6 text-center">&nbsp;</div>
-        <div className="w-24 text-right">After</div>
-        <div className="w-24 text-right">Change</div>
+        <div className="w-16 sm:w-24 text-right">Before</div>
+        {/* Arrow spacer — hidden on mobile */}
+        <div className="hidden sm:block w-6 text-center">&nbsp;</div>
+        <div className="w-16 sm:w-24 text-right">After</div>
+        <div className="hidden sm:block w-24 text-right">Change</div>
       </div>
 
       {/* Rows */}
@@ -70,56 +71,66 @@ export function PayslipComparison({ result }: Props) {
         {payslip.map((line, i) => {
           const isTotal = line.type === "total";
           return (
-            <div
-              key={i}
-              className={`grid grid-cols-[1fr_auto_auto_auto_auto] gap-x-4 px-5 py-3 items-center ${
-                isTotal
-                  ? "bg-slate-50 dark:bg-slate-700/30 font-semibold"
-                  : ""
-              }`}
-            >
+            <div key={i}>
+              {/* Main row */}
               <div
-                className={`text-sm ${
+                className={`grid grid-cols-[1fr_auto_auto_auto] sm:grid-cols-[1fr_auto_auto_auto_auto] gap-x-2 sm:gap-x-4 px-4 sm:px-5 py-3 items-center ${
                   isTotal
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-700 dark:text-slate-300"
+                    ? "bg-slate-50 dark:bg-slate-700/30 font-semibold"
+                    : ""
                 }`}
               >
-                {line.label}
+                <div
+                  className={`text-sm ${
+                    isTotal
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {line.label}
+                </div>
+                <div
+                  className={`w-16 sm:w-24 text-right text-sm tabular-nums ${
+                    isTotal
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <SignedAmount value={line.before} muted={line.before === 0 && !isTotal} />
+                </div>
+                {/* Arrow — hidden on mobile */}
+                <div className="hidden sm:flex w-6 justify-center">
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
+                </div>
+                <div
+                  className={`w-16 sm:w-24 text-right text-sm tabular-nums ${
+                    isTotal
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <SignedAmount value={line.after} />
+                </div>
+                {/* Change badge — hidden on mobile, shown inline on desktop */}
+                <div className="hidden sm:flex w-24 justify-end">
+                  <DiffBadge value={line.diff} />
+                </div>
               </div>
-              <div
-                className={`w-24 text-right text-sm tabular-nums ${
-                  isTotal
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-600 dark:text-slate-400"
-                }`}
-              >
-                <SignedAmount value={line.before} muted={line.before === 0 && !isTotal} />
-              </div>
-              <div className="w-6 flex justify-center">
-                <ArrowRight className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
-              </div>
-              <div
-                className={`w-24 text-right text-sm tabular-nums ${
-                  isTotal
-                    ? "text-slate-900 dark:text-white"
-                    : "text-slate-600 dark:text-slate-400"
-                }`}
-              >
-                <SignedAmount value={line.after} />
-              </div>
-              <div className="w-24 flex justify-end">
-                <DiffBadge value={line.diff} />
-              </div>
+              {/* Change badge — shown below the row on mobile only */}
+              {line.diff !== 0 && (
+                <div className="sm:hidden px-4 pb-2 -mt-1 flex justify-end">
+                  <DiffBadge value={line.diff} />
+                </div>
+              )}
             </div>
           );
         })}
       </div>
 
       {/* Pension pot footer */}
-      <div className={`px-5 py-4 border-t border-slate-200 dark:border-slate-700 ${theme.accentBgLight} ${theme.accentBgLightDark}`}>
-        <div className="flex items-center justify-between">
-          <div>
+      <div className={`px-4 sm:px-5 py-4 border-t border-slate-200 dark:border-slate-700 ${theme.accentBgLight} ${theme.accentBgLightDark}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <p className={`text-sm font-semibold ${theme.accentText} ${theme.accentTextDark}`}>
               Total into Pension Pot
             </p>
@@ -127,11 +138,11 @@ export function PayslipComparison({ result }: Props) {
               Including employer match & NI savings
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right shrink-0">
             <p className={`text-lg font-bold ${theme.accent} ${theme.accentDark}`}>
               {formatCurrency(result.totalPensionPotMonthly)}
               <span className={`text-sm font-normal ${theme.accentTextMuted} ${theme.accentTextMutedDark}`}>
-                {" "}/ month
+                {" "}/ mo
               </span>
             </p>
           </div>

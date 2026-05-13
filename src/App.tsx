@@ -627,62 +627,65 @@ function App() {
             </div>
 
             {/* Detailed comparison table */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
+            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-4 sm:p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
                 Before vs After Pension
               </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-1">
+                <table className="w-full text-xs sm:text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-700">
                       <th className="text-left py-2 text-slate-500 dark:text-slate-400 font-medium">
                         &nbsp;
                       </th>
-                      <th className="text-right py-2 text-slate-500 dark:text-slate-400 font-medium">
-                        Without Pension
+                      <th className="text-right py-2 px-1 sm:px-2 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                        <span className="hidden sm:inline">Without Pension</span>
+                        <span className="sm:hidden">Before</span>
                       </th>
-                      <th className="text-right py-2 text-slate-500 dark:text-slate-400 font-medium">
-                        With Pension
+                      <th className="text-right py-2 px-1 sm:px-2 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                        <span className="hidden sm:inline">With Pension</span>
+                        <span className="sm:hidden">After</span>
                       </th>
-                      <th className="text-right py-2 text-slate-500 dark:text-slate-400 font-medium">
-                        Difference
+                      <th className="text-right py-2 px-1 sm:px-2 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                        <span className="hidden sm:inline">Difference</span>
+                        <span className="sm:hidden">Diff</span>
                       </th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-700 dark:text-slate-300">
                     <tr className="border-b border-slate-100 dark:border-slate-700/50">
-                      <td className="py-2">Income Tax</td>
-                      <td className="text-right">
+                      <td className="py-2 pr-2">Income Tax</td>
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.incomeTaxNoPension)}
                       </td>
-                      <td className="text-right">
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.incomeTaxWithPension)}
                       </td>
-                      <td className="text-right text-emerald-600 dark:text-emerald-400">
+                      <td className="text-right px-1 sm:px-2 tabular-nums text-emerald-600 dark:text-emerald-400">
                         -{formatCurrency(result.taxRelief)}
                       </td>
                     </tr>
                     <tr className="border-b border-slate-100 dark:border-slate-700/50">
-                      <td className="py-2">Employee NI</td>
-                      <td className="text-right">
+                      <td className="py-2 pr-2">Employee NI</td>
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.employeeNiNoPension)}
                       </td>
-                      <td className="text-right">
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.employeeNiWithPension)}
                       </td>
-                      <td className="text-right text-emerald-600 dark:text-emerald-400">
+                      <td className="text-right px-1 sm:px-2 tabular-nums text-emerald-600 dark:text-emerald-400">
                         -{formatCurrency(result.employeeNiSaving)}
                       </td>
                     </tr>
                     <tr className="font-semibold">
-                      <td className="py-2">Take-Home</td>
-                      <td className="text-right">
+                      <td className="py-2 pr-2">Take-Home</td>
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.takeHomeNoPension)}
                       </td>
-                      <td className="text-right">
+                      <td className="text-right px-1 sm:px-2 tabular-nums">
                         {formatCurrency(result.takeHomeWithPension)}
                       </td>
-                      <td className="text-right text-rose-500">
+                      <td className="text-right px-1 sm:px-2 tabular-nums text-rose-500">
                         -{formatCurrency(result.effectiveTakeHomeGain)}
                       </td>
                     </tr>

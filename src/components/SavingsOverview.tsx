@@ -63,11 +63,11 @@ function ViewToggle({ view, setView }: { view: "monthly" | "yearly"; setView: (v
 function LineItem({ entry, total }: { entry: ChartEntry; total: number }) {
   const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2 sm:gap-3">
       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
-      <span className="text-sm text-slate-600 dark:text-slate-400 min-w-0 truncate flex-1">{entry.label}</span>
-      <span className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums whitespace-nowrap">{formatCurrency(entry.value)}</span>
-      <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums w-10 text-right">{pct}%</span>
+      <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 min-w-0 truncate flex-1">{entry.label}</span>
+      <span className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white tabular-nums whitespace-nowrap">{formatCurrency(entry.value)}</span>
+      <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums w-8 sm:w-10 text-right">{pct}%</span>
     </div>
   );
 }
@@ -143,27 +143,27 @@ function AllSavingsCard({ result }: Props) {
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
+      <div className="px-4 sm:px-6 pt-5 pb-3 flex items-start justify-between gap-3 sm:gap-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Total Savings & Investments</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">All your savings, ISA, and pension combined</p>
         </div>
         <ViewToggle view={view} setView={setView} />
       </div>
-      <div className="px-6 pb-4">
+      <div className="px-4 sm:px-6 pb-4">
         <p className="text-3xl font-bold text-slate-900 dark:text-white">
           {formatCurrency(total)}
           <span className="text-base font-normal text-slate-400 dark:text-slate-500 ml-1.5">{suffix}</span>
         </p>
       </div>
-      <div className="px-6 pb-2"><StackedBar items={items} /></div>
-      <div className="px-6 pb-6 grid grid-cols-[140px_1fr] gap-4 items-center">
+      <div className="px-4 sm:px-6 pb-2"><StackedBar items={items} /></div>
+      <div className="px-4 sm:px-6 pb-6 flex flex-col sm:grid sm:grid-cols-[140px_1fr] gap-4 items-center">
         <Donut items={items} />
         <div className="space-y-2.5">
           {items.map((entry) => <LineItem key={entry.label} entry={entry} total={total} />)}
         </div>
       </div>
-      <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
         <span className="text-xs text-slate-500 dark:text-slate-400">{view === "monthly" ? "Yearly total" : "Monthly total"}</span>
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           {formatCurrency(view === "monthly" ? totalSavingsYearly : totalSavingsMonthly)}
@@ -197,21 +197,21 @@ function PensionBreakdownCard({ result }: Props) {
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
-      <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
+      <div className="px-4 sm:px-6 pt-5 pb-3 flex items-start justify-between gap-3 sm:gap-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Pension Pot Breakdown</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">All sources contributing to your pension pot</p>
         </div>
         <ViewToggle view={view} setView={setView} />
       </div>
-      <div className="px-6 pb-4">
+      <div className="px-4 sm:px-6 pb-4">
         <p className="text-3xl font-bold text-slate-900 dark:text-white">
           {formatCurrency(total)}
           <span className="text-base font-normal text-slate-400 dark:text-slate-500 ml-1.5">{suffix}</span>
         </p>
       </div>
-      <div className="px-6 pb-2"><StackedBar items={items} /></div>
-      <div className="px-6 pb-6 grid grid-cols-[140px_1fr] gap-4 items-center">
+      <div className="px-4 sm:px-6 pb-2"><StackedBar items={items} /></div>
+      <div className="px-4 sm:px-6 pb-6 flex flex-col sm:grid sm:grid-cols-[140px_1fr] gap-4 items-center">
         <Donut items={items} />
         <div className="space-y-2.5">
           {items.map((entry) => <LineItem key={entry.label} entry={entry} total={total} />)}
@@ -220,7 +220,7 @@ function PensionBreakdownCard({ result }: Props) {
 
       {/* Net cost vs pot */}
       {total > 0 && result.effectiveTakeHomeGain > 0 && (
-        <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+        <div className="px-4 sm:px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
             Your net cost vs what goes in
           </p>
@@ -285,7 +285,7 @@ function PensionBreakdownCard({ result }: Props) {
       )}
 
       {/* Alternate view footer */}
-      <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
+      <div className="px-4 sm:px-6 py-3 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between">
         <span className="text-xs text-slate-500 dark:text-slate-400">{view === "monthly" ? "Yearly total" : "Monthly total"}</span>
         <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
           {formatCurrency(view === "monthly" ? totalPensionPot : totalPensionPotMonthly)}
