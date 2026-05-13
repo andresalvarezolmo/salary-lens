@@ -1,6 +1,6 @@
-# Pension Visualiser
+# Salary Lens
 
-A UK salary sacrifice and pension contribution calculator built with React, TypeScript, and Vite. It helps you understand how pension contributions affect your take-home pay, how much goes into your pension pot from various sources, and how to optimise your budget across spending, savings, and pension.
+A UK tax, pension, and take-home pay calculator built with React, TypeScript, and Vite. It helps you understand how your salary is split across tax, NI, pension, spending, and savings — and how to optimise your budget.
 
 ## Quick start
 

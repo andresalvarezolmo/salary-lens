@@ -142,10 +142,10 @@ function App() {
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
-              Pension Visualiser
+              Salary Lens
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              UK salary sacrifice & pension contribution calculator
+              UK tax, pension & take-home pay calculator
             </p>
           </div>
         </div>

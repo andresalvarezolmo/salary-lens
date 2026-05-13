@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the codebase structure, data flow, and key design decisions for the Pension Visualiser app.
+This document describes the codebase structure, data flow, and key design decisions for the Salary Lens app.
 
 ---
 
