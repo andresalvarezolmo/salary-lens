@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 
 export interface Theme {
   name: "scotland" | "england";
-  /** Header accent bar color */
+  /** Header accent bar gradient (flag-inspired: color → white → color) */
   headerBar: string;
   /** Icon container bg */
   iconBg: string;
@@ -39,7 +39,7 @@ export interface Theme {
 
 const scotland: Theme = {
   name: "scotland",
-  headerBar: "bg-blue-600",
+  headerBar: "from-blue-600 via-white/90 to-blue-600",
   iconBg: "bg-blue-100",
   iconBgDark: "dark:bg-blue-500/20",
   iconText: "text-blue-600",
@@ -66,7 +66,7 @@ const scotland: Theme = {
 
 const england: Theme = {
   name: "england",
-  headerBar: "bg-rose-600",
+  headerBar: "from-rose-600 via-white/90 to-rose-600",
   iconBg: "bg-rose-100",
   iconBgDark: "dark:bg-rose-500/20",
   iconText: "text-rose-600",

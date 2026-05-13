@@ -137,13 +137,13 @@ function App() {
   return (
     <ThemeContext.Provider value={theme}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
-      {/* Accent bar */}
-      <div className={`h-1 ${theme.headerBar} transition-colors duration-300`} />
+      {/* Flag-inspired accent bar */}
+      <div className={`h-1.5 bg-gradient-to-r ${theme.headerBar} transition-all duration-300`} />
 
       {/* Header */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
-          <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconBgDark} transition-colors duration-300`}>
+          <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconBgDark} ring-2 ring-white/80 dark:ring-white/15 transition-colors duration-300`}>
             <PiggyBank className={`w-6 h-6 ${theme.iconText} ${theme.iconTextDark} transition-colors duration-300`} />
           </div>
           <div>
@@ -162,7 +162,7 @@ function App() {
           {/* --- LEFT: Inputs --- */}
           <aside className="lg:col-span-4 space-y-6">
             {/* Income */}
-            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <TrendingUp className={`w-4 h-4 ${theme.iconText}`} />
                 Income
@@ -187,7 +187,7 @@ function App() {
             </section>
 
             {/* Spending */}
-            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-rose-500" />
@@ -235,7 +235,7 @@ function App() {
             </section>
 
             {/* Savings */}
-            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                   <Landmark className="w-4 h-4 text-emerald-500" />
@@ -284,7 +284,7 @@ function App() {
             </section>
 
             {/* Available summary */}
-            <div className={`rounded-2xl ${theme.accentBgLight} ${theme.accentBgLightDark} border ${theme.accentBorder} ${theme.accentBorderDark} p-4 space-y-1.5 transition-colors duration-300`}>
+            <div className={`rounded-2xl ${theme.accentBgLight} ${theme.accentBgLightDark} border ${theme.accentBorder} ${theme.accentBorderDark} ring-1 ring-white/60 dark:ring-white/10 p-4 space-y-1.5 transition-colors duration-300`}>
               <div className="flex justify-between text-sm">
                 <span className={`${theme.accentText} ${theme.accentTextDark}`}>
                   Available for pension (net)
@@ -304,7 +304,7 @@ function App() {
             </div>
 
             {/* Contribution amount */}
-            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <SlidersHorizontal className={`w-4 h-4 ${theme.iconText}`} />
                 Your Contribution
@@ -449,7 +449,7 @@ function App() {
             </section>
 
             {/* Pension options */}
-            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm space-y-4">
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-purple-500" />
                 Pension Options
@@ -584,7 +584,7 @@ function App() {
             </div>
 
             {/* Effective cost */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -619,7 +619,7 @@ function App() {
             </div>
 
             {/* Salary allocation chart */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
                 Salary Allocation
               </h3>
@@ -627,7 +627,7 @@ function App() {
             </div>
 
             {/* Detailed comparison table */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-5 shadow-sm">
+            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
               <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
                 Before vs After Pension
               </h3>

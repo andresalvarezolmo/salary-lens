@@ -132,7 +132,7 @@ function AllSavingsCard({ result }: Props) {
 
   if (items.length === 0 || total === 0) {
     return (
-      <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Total Savings & Investments</h3>
         <div className="flex items-center justify-center h-32 text-slate-400 dark:text-slate-500">
           <p className="text-sm">Add savings or pension contributions to see the breakdown</p>
@@ -142,7 +142,7 @@ function AllSavingsCard({ result }: Props) {
   }
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
       <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Total Savings & Investments</h3>
@@ -186,7 +186,7 @@ function PensionBreakdownCard({ result }: Props) {
 
   if (items.length === 0 || total === 0) {
     return (
-      <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 shadow-sm">
+      <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-6 shadow-sm">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Pension Pot Breakdown</h3>
         <div className="flex items-center justify-center h-32 text-slate-400 dark:text-slate-500">
           <p className="text-sm">Set a contribution to see the breakdown</p>
@@ -196,7 +196,7 @@ function PensionBreakdownCard({ result }: Props) {
   }
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
       <div className="px-6 pt-5 pb-3 flex items-start justify-between gap-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Pension Pot Breakdown</h3>
