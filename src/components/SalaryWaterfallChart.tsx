@@ -32,6 +32,11 @@ export function SalaryWaterfallChart({ result }: Props) {
       color: "#f97316",
     },
     {
+      name: "Student Loan",
+      value: result.studentLoanWithPension + result.postgradLoanWithPension,
+      color: "#f59e0b",
+    },
+    {
       name: "Pension",
       value: result.employeeContribution,
       color: "#8b5cf6",

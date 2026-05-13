@@ -278,6 +278,28 @@ function PensionBreakdownCard({ result }: Props) {
                     </span>
                   </div>
                 )}
+                {result.studentLoanSaving > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-violet-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">Student loan savings</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
+                      {formatCurrency(view === "monthly" ? Math.round(result.studentLoanSaving / 12) : result.studentLoanSaving)}
+                    </span>
+                  </div>
+                )}
+                {result.postgradLoanSaving > 0 && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-fuchsia-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-400">Postgrad loan savings</span>
+                    </div>
+                    <span className="text-xs font-semibold text-slate-900 dark:text-white tabular-nums">
+                      {formatCurrency(view === "monthly" ? Math.round(result.postgradLoanSaving / 12) : result.postgradLoanSaving)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

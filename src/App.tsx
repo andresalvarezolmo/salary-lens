@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { calculatePension, formatCurrency } from "./lib/pension";
-import type { PensionInputs, BudgetCategory } from "./lib/pension";
+import { calculatePension, formatCurrency, TAX_CONFIG } from "./lib/pension";
+import type { PensionInputs, BudgetCategory, StudentLoanPlan } from "./lib/pension";
 import { CurrencyInput } from "./components/CurrencyInput";
 import { Toggle } from "./components/Toggle";
 import { StatCard } from "./components/StatCard";
@@ -16,6 +16,8 @@ import {
   Building2,
   SlidersHorizontal,
   Plus,
+  GraduationCap,
+  ChevronDown,
 } from "lucide-react";
 import { getTheme, ThemeContext } from "./lib/theme";
 
@@ -45,7 +47,10 @@ function App() {
     chosenMonthlyContribution: 0,
     employeeContributionPercent: 5,
     chosenMonthlyGross: 0,
+    studentLoanPlan: "none",
+    hasPostgradLoan: false,
   });
+  const [studentLoanOpen, setStudentLoanOpen] = useState(false);
 
   const update = <K extends keyof PensionInputs>(
     key: K,
@@ -448,6 +453,61 @@ function App() {
               )}
             </section>
 
+            {/* Student Loans — collapsible */}
+            <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 shadow-sm overflow-hidden">
+              <button
+                onClick={() => setStudentLoanOpen((o) => !o)}
+                className="w-full px-5 py-4 flex items-center justify-between gap-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              >
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <GraduationCap className="w-4 h-4 text-amber-500" />
+                  Student Loans
+                </h2>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${studentLoanOpen ? "rotate-180" : ""}`} />
+              </button>
+              {studentLoanOpen && (
+                <div className="px-5 pb-5 space-y-4 border-t border-slate-100 dark:border-slate-700 pt-4">
+                  <div>
+                    <label htmlFor="studentLoan" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                      Undergraduate Loan Plan
+                    </label>
+                    <select
+                      id="studentLoan"
+                      value={inputs.studentLoanPlan}
+                      onChange={(e) => update("studentLoanPlan", e.target.value as StudentLoanPlan)}
+                      className={`w-full text-sm rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white px-3 py-2 focus:outline-none focus:ring-2 ${theme.focusRing} transition-colors`}
+                    >
+                      <option value="none">No student loan</option>
+                      <option value="plan1">{TAX_CONFIG.studentLoans.plan1.label}</option>
+                      <option value="plan2">{TAX_CONFIG.studentLoans.plan2.label}</option>
+                      <option value="plan4">{TAX_CONFIG.studentLoans.plan4.label}</option>
+                      <option value="plan5">{TAX_CONFIG.studentLoans.plan5.label}</option>
+                    </select>
+                    {inputs.studentLoanPlan !== "none" && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                        9% above {formatCurrency(TAX_CONFIG.studentLoans[inputs.studentLoanPlan].threshold)} — repaying {formatCurrency(result.studentLoanWithPension)}/yr
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+                    <Toggle
+                      id="postgradLoan"
+                      label="Postgraduate Loan"
+                      description="6% above £21,000 — stacks with undergraduate"
+                      enabled={inputs.hasPostgradLoan}
+                      onChange={(v) => update("hasPostgradLoan", v)}
+                    />
+                    {inputs.hasPostgradLoan && (
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 ml-1">
+                        Repaying {formatCurrency(result.postgradLoanWithPension)}/yr
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </section>
+
             {/* Pension options */}
             <section className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm space-y-4">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
@@ -581,6 +641,13 @@ function App() {
                 yearlyValue={result.taxRelief}
                 monthlyValue={Math.round(result.taxRelief / 12)}
               />
+              {(result.studentLoanSaving > 0 || result.postgradLoanSaving > 0) && (
+                <StatCard
+                  title="Student Loan Saved"
+                  yearlyValue={result.studentLoanSaving + result.postgradLoanSaving}
+                  monthlyValue={Math.round((result.studentLoanSaving + result.postgradLoanSaving) / 12)}
+                />
+              )}
             </div>
 
             {/* Effective cost */}
@@ -677,6 +744,34 @@ function App() {
                         -{formatCurrency(result.employeeNiSaving)}
                       </td>
                     </tr>
+                    {inputs.studentLoanPlan !== "none" && (
+                      <tr className="border-b border-slate-100 dark:border-slate-700/50">
+                        <td className="py-2 pr-2">Student Loan</td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums">
+                          {formatCurrency(result.studentLoanNoPension)}
+                        </td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums">
+                          {formatCurrency(result.studentLoanWithPension)}
+                        </td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums text-emerald-600 dark:text-emerald-400">
+                          -{formatCurrency(result.studentLoanSaving)}
+                        </td>
+                      </tr>
+                    )}
+                    {inputs.hasPostgradLoan && (
+                      <tr className="border-b border-slate-100 dark:border-slate-700/50">
+                        <td className="py-2 pr-2">Postgrad Loan</td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums">
+                          {formatCurrency(result.postgradLoanNoPension)}
+                        </td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums">
+                          {formatCurrency(result.postgradLoanWithPension)}
+                        </td>
+                        <td className="text-right px-1 sm:px-2 tabular-nums text-emerald-600 dark:text-emerald-400">
+                          -{formatCurrency(result.postgradLoanSaving)}
+                        </td>
+                      </tr>
+                    )}
                     <tr className="font-semibold">
                       <td className="py-2 pr-2">Take-Home</td>
                       <td className="text-right px-1 sm:px-2 tabular-nums">

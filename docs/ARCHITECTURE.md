@@ -39,6 +39,8 @@ This is the most important file in the project. It contains:
 - **`PensionResult`** interface -- Everything the UI needs to render.
 - **`calculatePension()`** -- The main function. ~330 lines. Computes tax, NI, pension contributions, employer match, NI savings, payslip lines, chart data, and max budget values.
 - **`netCostToGrossContribution()`** -- Binary search that converts a desired net cost (take-home reduction) into the gross salary sacrifice that produces that exact net cost. Needed because tax/NI bands make this relationship non-linear.
+- **`calculateStudentLoan()`** -- Calculates undergraduate student loan repayment for a given plan (Plan 1/2/4/5). 9% of earnings above the plan-specific threshold.
+- **`calculatePostgradLoan()`** -- Calculates postgraduate loan repayment. 6% of earnings above £21,000. Stacks independently with undergraduate loans.
 - **Helper functions** -- `calculateIncomeTaxRUK()`, `calculateIncomeTaxScottish()`, `calculateEmployeeNi()`, `calculateEmployerNi()`, `getPersonalAllowance()`.
 
 ### `src/App.tsx` -- State and Layout
@@ -82,9 +84,12 @@ interface PensionInputs {
   includeEmployeeNiSaving: boolean;       // Redirect employee NI saving into pot
   includeEmployerNiSaving: boolean;       // Redirect employer NI saving into pot
   scottishTax: boolean;                   // Use Scottish income tax bands
-  contributionMode: "netCost" | "percentage";
+  contributionMode: "netCost" | "percentage" | "gross";
   chosenMonthlyContribution: number;      // Net cost mode: monthly take-home reduction
   employeeContributionPercent: number;    // Percentage mode: % of qualifying earnings
+  chosenMonthlyGross: number;             // Gross mode: monthly gross salary sacrifice
+  studentLoanPlan: StudentLoanPlan;       // "none" | "plan1" | "plan2" | "plan4" | "plan5"
+  hasPostgradLoan: boolean;               // Whether user has a postgraduate loan
 }
 ```
 
@@ -92,10 +97,11 @@ interface PensionInputs {
 
 The result interface has ~40 fields. Key groups:
 
-- **Before pension**: `takeHomeNoPension`, `incomeTaxNoPension`, `employeeNiNoPension`
+- **Before pension**: `takeHomeNoPension`, `incomeTaxNoPension`, `employeeNiNoPension`, `studentLoanNoPension`, `postgradLoanNoPension`
 - **Budget**: `totalMonthlySpending`, `totalMonthlySavings`, `availableForPension`, `qualifyingEarnings`
 - **Max budgets**: `maxContribution`, `maxEmployeePercent`, `maxSpendingMonthly`, `maxSavingsMonthly`
 - **Contributions**: `employeeContribution`, `employerMatch`, `employeeNiSaving`, `employerNiSaving`
+- **Student loans**: `studentLoanWithPension`, `postgradLoanWithPension`, `studentLoanSaving`, `postgradLoanSaving`
 - **Totals**: `totalPensionPot` (all sources combined)
 - **After pension**: `takeHomeWithPension`, `incomeTaxWithPension`, `effectiveTakeHomeGain`, `taxRelief`
 - **Chart data**: `pensionBreakdown[]`, `savingsComposition[]`, `payslip[]`

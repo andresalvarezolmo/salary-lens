@@ -160,6 +160,42 @@ The engine computes "max" values for each budget category, answering "given ever
 
 ---
 
+## Student Loan Repayments
+
+Student loan repayments are calculated on gross pay (or post-sacrifice gross for salary sacrifice schemes). Undergraduate and postgraduate loans are independent and can stack.
+
+### Undergraduate Plans
+
+| Plan | Threshold | Rate | Description |
+|------|-----------|------|-------------|
+| Plan 1 | £26,065 | 9% | Pre-2012 England/Wales, or NI |
+| Plan 2 | £28,470 | 9% | Post-2012 England/Wales |
+| Plan 4 | £32,745 | 9% | Scotland (post-1998) |
+| Plan 5 | £25,000 | 9% | Post-2023 England |
+
+Repayment = `max(0, (earnings - threshold) * 0.09)`
+
+Implemented in `calculateStudentLoan(earnings, plan)`.
+
+### Postgraduate Loan
+
+| Parameter | Value |
+|-----------|-------|
+| Threshold | £21,000 |
+| Rate | 6% |
+
+Postgraduate loans stack with undergraduate loans — if someone has both, they pay both independently. The postgraduate rate is lower (6% vs 9%).
+
+Implemented in `calculatePostgradLoan(earnings)`.
+
+### Salary sacrifice interaction
+
+When salary sacrifice is used, student loan repayments are calculated on the **reduced** gross pay. This means salary sacrifice reduces student loan repayments — an often-overlooked benefit. The saving is shown in the payslip comparison and contribution breakdown.
+
+The binary search in `netCostToGrossContribution()` includes student loan repayments in the net cost calculation, ensuring accurate conversion between net cost and gross contribution amounts.
+
+---
+
 ## Sources
 
 - [HMRC Income Tax rates 2025/26](https://www.gov.uk/income-tax-rates)
@@ -167,3 +203,5 @@ The engine computes "max" values for each budget category, answering "given ever
 - [HMRC National Insurance rates 2025/26](https://www.gov.uk/national-insurance-rates-letters)
 - [The Pensions Regulator -- Automatic enrolment earnings thresholds](https://www.thepensionsregulator.gov.uk/en/employers/new-employers/automatic-enrolment-and-your-staff)
 - [HMRC Annual Allowance](https://www.gov.uk/tax-on-your-private-pension/annual-allowance)
+- [Student Loan repayment thresholds 2025/26](https://www.gov.uk/repaying-your-student-loan/what-you-pay)
+- [Postgraduate Loan repayment](https://www.gov.uk/repaying-your-student-loan/what-you-pay)

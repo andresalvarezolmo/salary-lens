@@ -35,7 +35,18 @@ export const TAX_CONFIG = {
   qualifyingEarningsUpper: 50_270,
 
   annualAllowance: 60_000,
+
+  // Student loan repayment thresholds and rates (2025/26)
+  studentLoans: {
+    plan1: { threshold: 26_065, rate: 0.09, label: "Plan 1 (pre-2012)" },
+    plan2: { threshold: 28_470, rate: 0.09, label: "Plan 2 (post-2012 England/Wales)" },
+    plan4: { threshold: 32_745, rate: 0.09, label: "Plan 4 (Scotland)" },
+    plan5: { threshold: 25_000, rate: 0.09, label: "Plan 5 (post-2023 England)" },
+    postgrad: { threshold: 21_000, rate: 0.06, label: "Postgraduate Loan" },
+  },
 };
+
+export type StudentLoanPlan = "none" | "plan1" | "plan2" | "plan4" | "plan5";
 
 export interface BudgetCategory {
   id: string;
@@ -69,6 +80,10 @@ export interface PensionInputs {
   employeeContributionPercent: number;
   /** Monthly gross salary sacrifice (£/month). Used when contributionMode = "gross". */
   chosenMonthlyGross: number;
+  /** Undergraduate student loan plan type */
+  studentLoanPlan: StudentLoanPlan;
+  /** Whether the user also has a postgraduate loan (stacks with undergraduate) */
+  hasPostgradLoan: boolean;
 }
 
 export interface PayslipLine {
@@ -85,6 +100,8 @@ export interface PensionResult {
   // Without pension
   incomeTaxNoPension: number;
   employeeNiNoPension: number;
+  studentLoanNoPension: number;
+  postgradLoanNoPension: number;
   takeHomeNoPension: number;
 
   // Budget
@@ -115,6 +132,12 @@ export interface PensionResult {
   employerNiSaving: number;
   employeeNiSavingMonthly: number;
   employerNiSavingMonthly: number;
+
+  // Student loan
+  studentLoanWithPension: number;
+  postgradLoanWithPension: number;
+  studentLoanSaving: number;
+  postgradLoanSaving: number;
 
   // Totals going into pension pot
   totalPensionPot: number;
@@ -240,17 +263,35 @@ function calculateEmployerNi(earnings: number): number {
 }
 
 /**
+ * Calculate student loan repayment for a given plan.
+ * Repayment = rate * max(0, earnings - threshold).
+ * Earnings = post-sacrifice gross pay (for salary sacrifice).
+ */
+function calculateStudentLoan(earnings: number, plan: StudentLoanPlan): number {
+  if (plan === "none") return 0;
+  const config = TAX_CONFIG.studentLoans[plan];
+  return Math.max(0, (earnings - config.threshold) * config.rate);
+}
+
+function calculatePostgradLoan(earnings: number): number {
+  const config = TAX_CONFIG.studentLoans.postgrad;
+  return Math.max(0, (earnings - config.threshold) * config.rate);
+}
+
+/**
  * Convert a desired net cost (take-home reduction) into the gross salary
  * sacrifice that produces exactly that net cost.
  *
- * Because tax & NI are non-linear, we binary-search for the gross amount
- * whose take-home impact equals the requested net cost.
+ * Because tax, NI, and student loan deductions are non-linear, we binary-search
+ * for the gross amount whose take-home impact equals the requested net cost.
  */
 function netCostToGrossContribution(
   grossSalary: number,
   desiredNetCost: number,
   takeHomeNoPension: number,
   scottishTax: boolean,
+  studentLoanPlan: StudentLoanPlan,
+  hasPostgradLoan: boolean,
 ): number {
   if (desiredNetCost <= 0) return 0;
   let lo = 0;
@@ -260,7 +301,9 @@ function netCostToGrossContribution(
     const reducedGross = grossSalary - mid;
     const taxAfter = calculateIncomeTax(reducedGross, reducedGross, scottishTax);
     const niAfter = calculateEmployeeNi(reducedGross);
-    const takeHomeAfter = reducedGross - taxAfter - niAfter;
+    const slAfter = calculateStudentLoan(reducedGross, studentLoanPlan);
+    const pgAfter = hasPostgradLoan ? calculatePostgradLoan(reducedGross) : 0;
+    const takeHomeAfter = reducedGross - taxAfter - niAfter - slAfter - pgAfter;
     const netCost = takeHomeNoPension - takeHomeAfter;
 
     if (netCost < desiredNetCost) {
@@ -287,6 +330,8 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     contributionMode,
     chosenMonthlyContribution,
     employeeContributionPercent,
+    studentLoanPlan,
+    hasPostgradLoan,
   } = inputs;
 
   const totalMonthlySpending = spendingCategories.reduce((sum, c) => sum + c.monthlyAmount, 0);
@@ -299,10 +344,12 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     Math.min(grossSalary, TAX_CONFIG.qualifyingEarningsUpper) - TAX_CONFIG.qualifyingEarningsLower
   );
 
-  // Tax & NI without any pension
+  // Tax, NI, and student loan without any pension
   const incomeTaxNoPension = calculateIncomeTax(grossSalary, grossSalary, scottishTax);
   const employeeNiNoPension = calculateEmployeeNi(grossSalary);
-  const takeHomeNoPension = grossSalary - incomeTaxNoPension - employeeNiNoPension;
+  const studentLoanNoPension = calculateStudentLoan(grossSalary, studentLoanPlan);
+  const postgradLoanNoPension = hasPostgradLoan ? calculatePostgradLoan(grossSalary) : 0;
+  const takeHomeNoPension = grossSalary - incomeTaxNoPension - employeeNiNoPension - studentLoanNoPension - postgradLoanNoPension;
 
   // What's left after all budget categories
   const availableForPension = Math.max(
@@ -326,7 +373,8 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     const chosenNetCost = Math.max(0, chosenMonthlyContribution * 12);
     if (salarySacrifice) {
       employeeContribution = netCostToGrossContribution(
-        grossSalary, chosenNetCost, takeHomeNoPension, scottishTax
+        grossSalary, chosenNetCost, takeHomeNoPension, scottishTax,
+        studentLoanPlan, hasPostgradLoan
       );
     } else {
       employeeContribution = chosenNetCost;
@@ -376,7 +424,7 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     totalPensionPot += employerNiSaving;
   }
 
-  // Tax after pension
+  // Tax and deductions after pension
   const taxableAfterPension = salarySacrifice
     ? grossSalary - employeeContribution
     : grossSalary;
@@ -389,17 +437,27 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     ? calculateEmployeeNi(taxableAfterPension)
     : employeeNiNoPension;
 
+  // Student loan on post-sacrifice gross (salary sacrifice reduces SL repayments)
+  const studentLoanWithPension = salarySacrifice
+    ? calculateStudentLoan(taxableAfterPension, studentLoanPlan)
+    : studentLoanNoPension;
+  const postgradLoanWithPension = salarySacrifice
+    ? (hasPostgradLoan ? calculatePostgradLoan(taxableAfterPension) : 0)
+    : postgradLoanNoPension;
+
+  const studentLoanSaving = studentLoanNoPension - studentLoanWithPension;
+  const postgradLoanSaving = postgradLoanNoPension - postgradLoanWithPension;
+
   const takeHomeWithPension = salarySacrifice
-    ? taxableAfterPension - incomeTaxWithPension - employeeNiWithPension
+    ? taxableAfterPension - incomeTaxWithPension - employeeNiWithPension - studentLoanWithPension - postgradLoanWithPension
     : takeHomeNoPension - employeeContribution;
 
   const taxRelief = incomeTaxNoPension - incomeTaxWithPension;
   const effectiveTakeHomeGain = takeHomeNoPension - takeHomeWithPension;
 
   // Max budget calculations — "given everything else, what's the max for this one?"
-  // Max employee contribution as % of qualifying earnings
   const maxGrossForBudget = salarySacrifice
-    ? netCostToGrossContribution(grossSalary, availableForPension, takeHomeNoPension, scottishTax)
+    ? netCostToGrossContribution(grossSalary, availableForPension, takeHomeNoPension, scottishTax, studentLoanPlan, hasPostgradLoan)
     : availableForPension;
   const maxGrossCapped = Math.min(Math.max(0, maxGrossForBudget), TAX_CONFIG.annualAllowance, grossSalary);
   const maxEmployeePercent = qualifyingEarnings > 0
@@ -437,6 +495,10 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
   const taxMonthlyAfter = m(incomeTaxWithPension);
   const niMonthlyBefore = m(employeeNiNoPension);
   const niMonthlyAfter = m(employeeNiWithPension);
+  const slMonthlyBefore = m(studentLoanNoPension);
+  const slMonthlyAfter = m(studentLoanWithPension);
+  const pgMonthlyBefore = m(postgradLoanNoPension);
+  const pgMonthlyAfter = m(postgradLoanWithPension);
 
   const netMonthlyBefore = m(takeHomeNoPension);
   const netMonthlyAfter = m(takeHomeWithPension);
@@ -484,6 +546,27 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
       type: "deduct",
     },
   );
+
+  // Student loan lines (only if active)
+  if (studentLoanPlan !== "none") {
+    payslip.push({
+      label: `Student Loan (${TAX_CONFIG.studentLoans[studentLoanPlan].label})`,
+      before: -slMonthlyBefore,
+      after: -slMonthlyAfter,
+      diff: -(slMonthlyAfter - slMonthlyBefore),
+      type: "deduct",
+    });
+  }
+
+  if (hasPostgradLoan) {
+    payslip.push({
+      label: "Postgraduate Loan",
+      before: -pgMonthlyBefore,
+      after: -pgMonthlyAfter,
+      diff: -(pgMonthlyAfter - pgMonthlyBefore),
+      type: "deduct",
+    });
+  }
 
   if (!salarySacrifice && employeeContribution > 0) {
     payslip.push({
@@ -565,6 +648,8 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     grossSalary,
     incomeTaxNoPension: Math.round(incomeTaxNoPension),
     employeeNiNoPension: Math.round(employeeNiNoPension),
+    studentLoanNoPension: Math.round(studentLoanNoPension),
+    postgradLoanNoPension: Math.round(postgradLoanNoPension),
     takeHomeNoPension: Math.round(takeHomeNoPension),
 
     totalMonthlySpending,
@@ -590,6 +675,11 @@ export function calculatePension(inputs: PensionInputs): PensionResult {
     employerNiSaving: Math.round(employerNiSaving),
     employeeNiSavingMonthly: Math.round(employeeNiSaving / 12),
     employerNiSavingMonthly: Math.round(employerNiSaving / 12),
+
+    studentLoanWithPension: Math.round(studentLoanWithPension),
+    postgradLoanWithPension: Math.round(postgradLoanWithPension),
+    studentLoanSaving: Math.round(studentLoanSaving),
+    postgradLoanSaving: Math.round(postgradLoanSaving),
 
     totalPensionPot: Math.round(totalPensionPot),
     totalPensionPotMonthly: Math.round(totalPensionPot / 12),
