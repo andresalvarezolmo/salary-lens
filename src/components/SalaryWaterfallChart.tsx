@@ -60,7 +60,7 @@ export function SalaryWaterfallChart({ result }: Props) {
             tickFormatter={(v) => `${Math.round(v / 1000)}k`}
           />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value) => formatCurrency(Number(value))}
             contentStyle={{
               background: "rgba(30, 41, 59, 0.95)",
               border: "none",
