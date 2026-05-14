@@ -8,6 +8,7 @@ import { SalaryWaterfallChart } from "./components/SalaryWaterfallChart";
 import { PayslipComparison } from "./components/PayslipComparison";
 import { SavingsOverview } from "./components/SavingsOverview";
 import { BudgetCategoryList } from "./components/BudgetCategoryList";
+import { FireDashboard } from "./components/FireDashboard";
 import {
   PiggyBank,
   TrendingUp,
@@ -20,6 +21,8 @@ import {
   ChevronDown,
   FileText,
   AlertCircle,
+  Flame,
+  Calculator,
 } from "lucide-react";
 import { getTheme, ThemeContext } from "./lib/theme";
 
@@ -55,6 +58,7 @@ function App() {
   });
   const [studentLoanOpen, setStudentLoanOpen] = useState(false);
   const [taxCodeOpen, setTaxCodeOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"calculator" | "fire">("calculator");
 
   const update = <K extends keyof PensionInputs>(
     key: K,
@@ -165,6 +169,34 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Tab bar */}
+      <div className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1">
+          <button
+            onClick={() => setActiveTab("calculator")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "calculator"
+                ? `${theme.accent} ${theme.accentDark} border-current`
+                : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Calculator className="w-4 h-4" />
+            Tax & Pension
+          </button>
+          <button
+            onClick={() => setActiveTab("fire")}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === "fire"
+                ? `${theme.accent} ${theme.accentDark} border-current`
+                : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-300"
+            }`}
+          >
+            <Flame className="w-4 h-4" />
+            FIRE Planner
+          </button>
+        </div>
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -633,6 +665,12 @@ function App() {
 
           {/* --- RIGHT: Results --- */}
           <div className="lg:col-span-8 space-y-6">
+
+            {/* FIRE Tab */}
+            {activeTab === "fire" && <FireDashboard result={result} />}
+
+            {/* Calculator Tab */}
+            {activeTab === "calculator" && <>
             {/* Headline stats */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               <StatCard
@@ -842,6 +880,7 @@ function App() {
                 </table>
               </div>
             </div>
+            </>}
           </div>
         </div>
       </main>

@@ -20,11 +20,25 @@ PensionResult
         +---> PensionBreakdownChart (pension pot sources)
         +---> SalaryWaterfallChart (salary allocation)
         +---> SavingsComposition (ISA + pension combined)
+        +---> FireDashboard (FIRE planner tab)
+                    |
+                    v
+              calculateFire(fireInputs)   <-- src/lib/fire.ts
+                    |
+                    v
+              FireResult
+                    |
+                    +---> MetricCard (FIRE number, years, savings rate, Coast FIRE)
+                    +---> AreaChart (portfolio projection)
+                    +---> FIRE Variants table (Lean/Regular/Fat)
+                    +---> Pension Bridge warning
 ```
 
 All state lives in `App.tsx` as a single `PensionInputs` object. The `calculatePension()` function is pure -- it takes inputs and returns a complete `PensionResult` with every derived value the UI needs. This is called inside `useMemo` so results are recomputed only when inputs change.
 
 No component calls `calculatePension()` directly. Each component receives the relevant slice of `PensionResult` as props.
+
+The FIRE planner tab derives its inputs from `PensionResult` (spending, savings, take-home pay) combined with FIRE-specific local state (age, portfolio, return rate, withdrawal rate). The `calculateFire()` function is also pure and called inside `useMemo`.
 
 ---
 
@@ -44,6 +58,20 @@ This is the most important file in the project. It contains:
 - **`parseTaxCode()`** -- Parses a UK PAYE tax code string into a `ParsedTaxCode` object. Handles standard codes, K codes, flat-rate codes (BR/D0/D1), NT, 0T, and S/C prefixes.
 - **`computeIncomeTax()`** -- Wrapper that routes income tax calculation through the parsed tax code (flat rate, K code, fixed allowance, or no-tax), falling back to standard calculation when no code is provided.
 - **Helper functions** -- `calculateIncomeTaxRUK()`, `calculateIncomeTaxScottish()`, `calculateEmployeeNi()`, `calculateEmployerNi()`, `getPersonalAllowance()`.
+
+### `src/lib/fire.ts` -- FIRE Calculation Engine
+
+Implements the Financial Independence, Retire Early (FIRE) calculations:
+
+- **`FireInputs`** interface -- Age, portfolio, return rate, withdrawal rate, and derived spending/savings from the main calculator.
+- **`FireResult`** interface -- FIRE number, savings rate, years to FIRE, variants, Coast FIRE, projection, and pension bridge analysis.
+- **`yearsToTarget()`** -- Compound interest solver: given current portfolio, annual contributions, and return rate, calculates years to reach a target value using `n = ln((F + C/r) / (P + C/r)) / ln(1+r)`.
+- **`calculateFire()`** -- Main function computing all FIRE metrics:
+  - **FIRE number**: `annualSpending / withdrawalRate` (default 4% rule → 25× spending)
+  - **FIRE variants**: Lean (80%), Regular (100%), Fat (150%) of current spending
+  - **Coast FIRE**: portfolio needed now so compound growth alone reaches FIRE by state retirement age (67)
+  - **Pension bridge**: years and amount needed in accessible (non-pension) accounts to cover spending between FIRE age and pension access age (57)
+  - **Projection**: year-by-year portfolio growth for charting
 
 ### `src/App.tsx` -- State and Layout
 
@@ -69,6 +97,7 @@ All components are presentational. They receive props and render. No component m
 | `PensionBreakdownChart` | "What's Going Into Your Pension" card. Stacked horizontal bar, donut chart, line items, net cost vs pot comparison, and contribution breakdown (net cost + tax savings + NI savings). Monthly/yearly toggle. |
 | `SalaryWaterfallChart` | Bar chart showing gross salary allocation across tax, NI, pension, and budget. |
 | `SavingsComposition` | "Total Savings & Investments" card combining ISA/savings categories with pension total. Stacked bar, donut, line items. Monthly/yearly toggle. |
+| `FireDashboard` | FIRE planner tab. Owns FIRE-specific inputs (age, portfolio, return, withdrawal rate). Derives spending/savings from `PensionResult`. Renders key metrics, projection chart, variants table, pension bridge warning, and numbers summary. |
 
 ---
 
@@ -123,6 +152,10 @@ Tax and NI have multiple bands with different rates, plus the personal allowance
 ### Why two contribution modes?
 
 Workplace pension schemes specify contributions as a percentage of qualifying earnings (e.g. "5% employee, 3% employer"). But when thinking about personal budgeting, it is more intuitive to think in terms of "how much does this actually cost me from my take-home?" The two modes serve these two mental models, and switching between them preserves the equivalent contribution.
+
+### Why does the FIRE tab have its own local state?
+
+The FIRE planner needs inputs (current age, existing portfolio, expected return, withdrawal rate) that are personal financial planning parameters unrelated to the tax/pension engine. These live as `useState` in `FireDashboard` rather than in `App.tsx` because they don't affect any other calculation. The FIRE engine reads spending and savings from `PensionResult` (which updates live as the user adjusts salary/pension/budget), keeping the two systems in sync without coupling their state.
 
 ### Why separate spending and savings categories?
 
