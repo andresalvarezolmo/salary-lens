@@ -23,10 +23,14 @@ import {
   AlertCircle,
   Flame,
   Calculator,
+  Share2,
+  Check,
 } from "lucide-react";
 import { getTheme, ThemeContext } from "./lib/theme";
 
 let nextId = 1;
+
+const STORAGE_KEY = "salary-lens-inputs";
 
 const DEFAULT_SPENDING: BudgetCategory[] = [
   { id: "spending", label: "Monthly Spending", monthlyAmount: 1500, builtIn: false },
@@ -36,29 +40,75 @@ const DEFAULT_SAVINGS: BudgetCategory[] = [
   { id: "isa", label: "ISA Contributions", monthlyAmount: 1666.66, builtIn: true },
 ];
 
+const DEFAULT_INPUTS: PensionInputs = {
+  grossSalary: 0,
+  spendingCategories: DEFAULT_SPENDING,
+  savingsCategories: DEFAULT_SAVINGS,
+  employerMatchEnabled: true,
+  employerMatchPercent: 3,
+  employerMatchOnGross: false,
+  salarySacrifice: true,
+  includeEmployeeNiSaving: false,
+  includeEmployerNiSaving: true,
+  scottishTax: true,
+  contributionMode: "percentage",
+  chosenMonthlyContribution: 0,
+  employeeContributionPercent: 5,
+  chosenMonthlyGross: 0,
+  studentLoanPlan: "none",
+  hasPostgradLoan: false,
+  taxCode: "",
+};
+
+function loadInputs(): PensionInputs {
+  // Check URL hash first (shared link), then localStorage
+  try {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const decoded = JSON.parse(atob(hash));
+      window.history.replaceState(null, "", window.location.pathname);
+      return { ...DEFAULT_INPUTS, ...decoded };
+    }
+  } catch { /* invalid hash, ignore */ }
+
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return { ...DEFAULT_INPUTS, ...parsed };
+    }
+  } catch { /* corrupt data, ignore */ }
+
+  return DEFAULT_INPUTS;
+}
+
 function App() {
-  const [inputs, setInputs] = useState<PensionInputs>({
-    grossSalary: 0,
-    spendingCategories: DEFAULT_SPENDING,
-    savingsCategories: DEFAULT_SAVINGS,
-    employerMatchEnabled: true,
-    employerMatchPercent: 3,
-    employerMatchOnGross: false,
-    salarySacrifice: true,
-    includeEmployeeNiSaving: false,
-    includeEmployerNiSaving: true,
-    scottishTax: true,
-    contributionMode: "percentage",
-    chosenMonthlyContribution: 0,
-    employeeContributionPercent: 5,
-    chosenMonthlyGross: 0,
-    studentLoanPlan: "none",
-    hasPostgradLoan: false,
-    taxCode: "",
-  });
+  const [inputs, setInputs] = useState<PensionInputs>(loadInputs);
   const [studentLoanOpen, setStudentLoanOpen] = useState(false);
   const [taxCodeOpen, setTaxCodeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"calculator" | "fire">("calculator");
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
+
+  // Auto-save to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs));
+    } catch { /* storage full or disabled */ }
+  }, [inputs]);
+
+  const handleShare = useCallback(() => {
+    const encoded = btoa(JSON.stringify(inputs));
+    const url = `${window.location.origin}${window.location.pathname}#${encoded}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2000);
+    });
+  }, [inputs]);
+
+  const handleReset = useCallback(() => {
+    setInputs(DEFAULT_INPUTS);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
 
   const update = <K extends keyof PensionInputs>(
     key: K,
@@ -159,13 +209,33 @@ function App() {
           <div className={`p-2 rounded-xl ${theme.iconBg} ${theme.iconBgDark} ring-2 ring-white/80 dark:ring-white/15 transition-colors duration-300`}>
             <PiggyBank className={`w-6 h-6 ${theme.iconText} ${theme.iconTextDark} transition-colors duration-300`} />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-lg font-bold text-slate-900 dark:text-white">
               Salary Lens
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               UK tax, pension & take-home pay calculator
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              title="Copy shareable link"
+            >
+              {shareStatus === "copied" ? (
+                <><Check className="w-3.5 h-3.5 text-emerald-500" /> Copied!</>
+              ) : (
+                <><Share2 className="w-3.5 h-3.5" /> Share</>
+              )}
+            </button>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              title="Reset all inputs to defaults"
+            >
+              Reset
+            </button>
           </div>
         </div>
       </header>

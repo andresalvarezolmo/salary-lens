@@ -14,7 +14,7 @@ import { calculateFire } from "../lib/fire";
 import type { FireInputs } from "../lib/fire";
 import { CurrencyInput } from "./CurrencyInput";
 import { useTheme } from "../lib/theme";
-import { Flame, Target, TrendingUp, Clock, Shield, AlertTriangle, ChevronDown } from "lucide-react";
+import { Flame, Target, TrendingUp, Clock, Shield, AlertTriangle, ChevronDown, Info } from "lucide-react";
 
 interface Props {
   result: PensionResult;
@@ -77,6 +77,8 @@ export function FireDashboard({ result }: Props) {
   const [annualReturn, setAnnualReturn] = useState(7);
   const [withdrawalRate, setWithdrawalRate] = useState(4);
   const [retirementMonthlySpending, setRetirementMonthlySpending] = useState(0);
+  const [inflationRate, setInflationRate] = useState(2.5);
+  const [showNominal, setShowNominal] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const currentPortfolio = currentAccessible + currentPension;
@@ -106,6 +108,24 @@ export function FireDashboard({ result }: Props) {
     annualSpending, totalAnnualSavings, accessibleAnnualSavings,
     pensionAnnualSavings, result.takeHomeWithPension,
   ]);
+
+  // Nominal projection: inflate real values by cumulative inflation
+  const inf = inflationRate / 100;
+  const chartData = useMemo(() => {
+    if (!showNominal) return fire.projection;
+    return fire.projection.map((p) => {
+      const inflator = Math.pow(1 + inf, p.year);
+      return {
+        ...p,
+        portfolio: Math.round(p.portfolio * inflator),
+        accessiblePortfolio: Math.round(p.accessiblePortfolio * inflator),
+        pensionPortfolio: Math.round(p.pensionPortfolio * inflator),
+        fireNumber: Math.round(p.fireNumber * inflator),
+      };
+    });
+  }, [fire.projection, showNominal, inf]);
+
+  const chartFireNumber = showNominal ? undefined : fire.fireNumber; // nominal FIRE number moves each year, shown per-point
 
   const hasData = annualSpending > 0 && totalAnnualSavings > 0;
 
@@ -154,7 +174,7 @@ export function FireDashboard({ result }: Props) {
           Advanced Settings
           {!advancedOpen && (
             <span className="text-slate-300 dark:text-slate-600 font-normal">
-              — {annualReturn}% return, {withdrawalRate}% withdrawal
+              — {annualReturn}% return, {withdrawalRate}% withdrawal, {inflationRate}% inflation
               {retirementMonthlySpending > 0 ? `, ${formatCurrency(retirementMonthlySpending)}/mo retirement` : ""}
             </span>
           )}
@@ -189,11 +209,23 @@ export function FireDashboard({ result }: Props) {
               max={20000}
               step={100}
             />
-            {retirementMonthlySpending === 0 && (
-              <p className="text-xs text-slate-400 dark:text-slate-500 col-span-full -mt-1">
-                Leave at £0 to use your current monthly spending ({formatCurrency(annualSpending / 12)}/mo)
+            <CurrencyInput
+              id="fireInflation"
+              label="Inflation Rate"
+              value={inflationRate}
+              onChange={setInflationRate}
+              prefix=""
+              suffix="%"
+              max={10}
+              step={0.5}
+            />
+            <div className="flex items-start gap-2 col-span-full -mt-1">
+              <Info className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                The {annualReturn}% return is <span className="font-medium">real</span> (after inflation). Toggle the chart to see nominal values.
+                {retirementMonthlySpending === 0 && <> Leave retirement spending at £0 to use your current spending ({formatCurrency(annualSpending / 12)}/mo).</>}
               </p>
-            )}
+            </div>
           </div>
         )}
       </div>
@@ -242,15 +274,44 @@ export function FireDashboard({ result }: Props) {
 
           {/* Projection Chart */}
           <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-              Portfolio Projection
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Projected growth at {annualReturn}% real return with {formatCurrency(fire.annualSavings)}/yr contributions
-            </p>
+            <div className="flex items-start justify-between mb-1">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Portfolio Projection
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {showNominal
+                    ? `Nominal values at ${annualReturn + inflationRate}% return (${annualReturn}% real + ${inflationRate}% inflation)`
+                    : `Real values (today's £) at ${annualReturn}% return with ${formatCurrency(fire.annualSavings)}/yr contributions`
+                  }
+                </p>
+              </div>
+              <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-0.5 shrink-0">
+                <button
+                  onClick={() => setShowNominal(false)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                    !showNominal
+                      ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  Real
+                </button>
+                <button
+                  onClick={() => setShowNominal(true)}
+                  className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
+                    showNominal
+                      ? "bg-white dark:bg-slate-600 text-slate-900 dark:text-white shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                  }`}
+                >
+                  Nominal
+                </button>
+              </div>
+            </div>
             <div className="h-72 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={fire.projection} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
                   <defs>
                     <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
@@ -283,13 +344,26 @@ export function FireDashboard({ result }: Props) {
                     labelFormatter={(label) => `Age ${label}`}
                     contentStyle={tooltipStyle}
                   />
-                  <ReferenceLine
-                    y={fire.fireNumber}
-                    stroke="#e879f9"
-                    strokeDasharray="6 3"
-                    strokeWidth={2}
-                    label={{ value: `FIRE: ${formatCurrency(fire.fireNumber)}`, position: "right", fontSize: 11, fill: "#e879f9" }}
-                  />
+                  {!showNominal ? (
+                    <ReferenceLine
+                      y={fire.fireNumber}
+                      stroke="#e879f9"
+                      strokeDasharray="6 3"
+                      strokeWidth={2}
+                      label={{ value: `FIRE: ${formatCurrency(fire.fireNumber)}`, position: "right", fontSize: 11, fill: "#e879f9" }}
+                    />
+                  ) : (
+                    <Area
+                      type="monotone"
+                      dataKey="fireNumber"
+                      name="FIRE Target"
+                      stroke="#e879f9"
+                      strokeWidth={2}
+                      strokeDasharray="6 3"
+                      fill="none"
+                      dot={false}
+                    />
+                  )}
                   {fire.fireAge > 0 && fire.fireAge <= currentAge + 50 && (
                     <ReferenceLine
                       x={fire.fireAge}
