@@ -72,9 +72,12 @@ export function FireDashboard({ result }: Props) {
 
   // FIRE-specific inputs
   const [currentAge, setCurrentAge] = useState(30);
-  const [currentPortfolio, setCurrentPortfolio] = useState(0);
+  const [currentAccessible, setCurrentAccessible] = useState(0);
+  const [currentPension, setCurrentPension] = useState(0);
   const [annualReturn, setAnnualReturn] = useState(7);
   const [withdrawalRate, setWithdrawalRate] = useState(4);
+
+  const currentPortfolio = currentAccessible + currentPension;
 
   // Derive from main calculator
   const annualSpending = result.totalMonthlySpending * 12;
@@ -85,6 +88,7 @@ export function FireDashboard({ result }: Props) {
   const fireInputs: FireInputs = {
     currentAge,
     currentPortfolio,
+    currentPensionPortfolio: currentPension,
     annualReturn,
     withdrawalRate,
     annualSpending,
@@ -95,7 +99,7 @@ export function FireDashboard({ result }: Props) {
   };
 
   const fire = useMemo(() => calculateFire(fireInputs), [
-    currentAge, currentPortfolio, annualReturn, withdrawalRate,
+    currentAge, currentAccessible, currentPension, annualReturn, withdrawalRate,
     annualSpending, totalAnnualSavings, accessibleAnnualSavings,
     pensionAnnualSavings, result.takeHomeWithPension,
   ]);
@@ -110,7 +114,7 @@ export function FireDashboard({ result }: Props) {
           <Flame className="w-4 h-4 text-orange-500" />
           FIRE Settings
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <CurrencyInput
             id="fireAge"
             label="Current Age"
@@ -122,9 +126,17 @@ export function FireDashboard({ result }: Props) {
           />
           <CurrencyInput
             id="firePortfolio"
-            label="Current Portfolio"
-            value={currentPortfolio}
-            onChange={setCurrentPortfolio}
+            label="ISA / GIA Portfolio"
+            value={currentAccessible}
+            onChange={setCurrentAccessible}
+            max={5000000}
+            step={5000}
+          />
+          <CurrencyInput
+            id="firePension"
+            label="Pension Portfolio"
+            value={currentPension}
+            onChange={setCurrentPension}
             max={5000000}
             step={5000}
           />
@@ -206,8 +218,16 @@ export function FireDashboard({ result }: Props) {
                 <AreaChart data={fire.projection} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
                   <defs>
                     <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01} />
+                    </linearGradient>
+                    <linearGradient id="accessibleGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="pensionGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -224,21 +244,21 @@ export function FireDashboard({ result }: Props) {
                     tickFormatter={(v) => v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : `${Math.round(v / 1000)}k`}
                   />
                   <Tooltip
-                    formatter={(value) => [formatCurrency(Number(value)), "Portfolio"]}
+                    formatter={(value, name) => [formatCurrency(Number(value)), name]}
                     labelFormatter={(label) => `Age ${label}`}
                     contentStyle={tooltipStyle}
                   />
                   <ReferenceLine
                     y={fire.fireNumber}
-                    stroke="#f59e0b"
+                    stroke="#e879f9"
                     strokeDasharray="6 3"
                     strokeWidth={2}
-                    label={{ value: `FIRE: ${formatCurrency(fire.fireNumber)}`, position: "right", fontSize: 11, fill: "#f59e0b" }}
+                    label={{ value: `FIRE: ${formatCurrency(fire.fireNumber)}`, position: "right", fontSize: 11, fill: "#e879f9" }}
                   />
                   {fire.fireAge > 0 && fire.fireAge <= currentAge + 50 && (
                     <ReferenceLine
                       x={fire.fireAge}
-                      stroke="#22c55e"
+                      stroke="#e879f9"
                       strokeDasharray="4 3"
                       strokeWidth={1.5}
                     />
@@ -246,9 +266,26 @@ export function FireDashboard({ result }: Props) {
                   <Area
                     type="monotone"
                     dataKey="portfolio"
+                    name="Total Portfolio"
                     stroke="#6366f1"
                     strokeWidth={2.5}
                     fill="url(#portfolioGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="accessiblePortfolio"
+                    name="ISA / GIA"
+                    stroke="#22c55e"
+                    strokeWidth={1.5}
+                    fill="url(#accessibleGrad)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="pensionPortfolio"
+                    name="Pension"
+                    stroke="#f59e0b"
+                    strokeWidth={1.5}
+                    fill="url(#pensionGrad)"
                   />
                 </AreaChart>
               </ResponsiveContainer>

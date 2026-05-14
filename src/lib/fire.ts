@@ -10,7 +10,10 @@
 
 export interface FireInputs {
   currentAge: number;
+  /** Total current portfolio (accessible + pension). */
   currentPortfolio: number;
+  /** Current pension pot value (subset of currentPortfolio). */
+  currentPensionPortfolio: number;
   /** Expected real (after-inflation) annual return, as a percentage (e.g. 7). */
   annualReturn: number;
   /** Safe withdrawal rate, as a percentage (e.g. 4). */
@@ -32,6 +35,8 @@ export interface FireProjectionYear {
   year: number;
   age: number;
   portfolio: number;
+  accessiblePortfolio: number;
+  pensionPortfolio: number;
   fireNumber: number;
 }
 
@@ -95,10 +100,13 @@ export function calculateFire(inputs: FireInputs): FireResult {
   const {
     currentAge,
     currentPortfolio,
+    currentPensionPortfolio,
     annualReturn,
     withdrawalRate,
     annualSpending,
     totalAnnualSavings,
+    accessibleAnnualSavings,
+    pensionAnnualSavings,
     takeHomePay,
   } = inputs;
 
@@ -146,18 +154,23 @@ export function calculateFire(inputs: FireInputs): FireResult {
     : fireNumber;
   const coastFireReached = currentPortfolio >= coastFireNumber;
 
-  // Year-by-year projection
+  // Year-by-year projection — track accessible (ISA/GIA) and pension separately
   const projectionLength = Math.min(50, Math.max(30, isFinite(yrsToFire) ? Math.ceil(yrsToFire) + 10 : 40));
   const projection: FireProjectionYear[] = [];
-  let portfolio = currentPortfolio;
+  const currentAccessiblePortfolio = Math.max(0, currentPortfolio - currentPensionPortfolio);
+  let accPort = currentAccessiblePortfolio;
+  let penPort = currentPensionPortfolio;
   for (let y = 0; y <= projectionLength; y++) {
     projection.push({
       year: y,
       age: currentAge + y,
-      portfolio: Math.round(portfolio),
+      portfolio: Math.round(accPort + penPort),
+      accessiblePortfolio: Math.round(accPort),
+      pensionPortfolio: Math.round(penPort),
       fireNumber,
     });
-    portfolio = portfolio * (1 + r) + totalAnnualSavings;
+    accPort = accPort * (1 + r) + accessibleAnnualSavings;
+    penPort = penPort * (1 + r) + pensionAnnualSavings;
   }
 
   // Pension bridge
