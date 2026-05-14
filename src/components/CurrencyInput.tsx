@@ -48,7 +48,7 @@ export function CurrencyInput({
     <div className="space-y-1.5">
       <label
         htmlFor={id}
-        className="block text-sm font-medium text-slate-700 dark:text-slate-300"
+        className="flex items-end min-h-[2.5rem] text-sm font-medium text-slate-700 dark:text-slate-300"
       >
         {label}
       </label>
