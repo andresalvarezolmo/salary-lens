@@ -76,6 +76,7 @@ export function FireDashboard({ result }: Props) {
   const [currentPension, setCurrentPension] = useState(0);
   const [annualReturn, setAnnualReturn] = useState(7);
   const [withdrawalRate, setWithdrawalRate] = useState(4);
+  const [retirementMonthlySpending, setRetirementMonthlySpending] = useState(0);
 
   const currentPortfolio = currentAccessible + currentPension;
 
@@ -92,6 +93,7 @@ export function FireDashboard({ result }: Props) {
     annualReturn,
     withdrawalRate,
     annualSpending,
+    retirementSpending: retirementMonthlySpending * 12,
     totalAnnualSavings,
     accessibleAnnualSavings,
     pensionAnnualSavings,
@@ -99,7 +101,7 @@ export function FireDashboard({ result }: Props) {
   };
 
   const fire = useMemo(() => calculateFire(fireInputs), [
-    currentAge, currentAccessible, currentPension, annualReturn, withdrawalRate,
+    currentAge, currentAccessible, currentPension, annualReturn, withdrawalRate, retirementMonthlySpending,
     annualSpending, totalAnnualSavings, accessibleAnnualSavings,
     pensionAnnualSavings, result.takeHomeWithPension,
   ]);
@@ -114,7 +116,7 @@ export function FireDashboard({ result }: Props) {
           <Flame className="w-4 h-4 text-orange-500" />
           FIRE Settings
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <CurrencyInput
             id="fireAge"
             label="Current Age"
@@ -160,7 +162,20 @@ export function FireDashboard({ result }: Props) {
             max={10}
             step={0.5}
           />
+          <CurrencyInput
+            id="fireRetSpend"
+            label="Retirement Spending"
+            value={retirementMonthlySpending}
+            onChange={setRetirementMonthlySpending}
+            max={20000}
+            step={100}
+          />
         </div>
+        {retirementMonthlySpending === 0 && (
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+            Leave retirement spending at £0 to use your current monthly spending ({formatCurrency(annualSpending / 12)}/mo)
+          </p>
+        )}
       </div>
 
       {!hasData ? (
@@ -178,7 +193,7 @@ export function FireDashboard({ result }: Props) {
               icon={<Target className="w-4 h-4 text-white/70" />}
               title="FIRE Number"
               value={formatCurrency(fire.fireNumber)}
-              subtitle={`${Math.round(1 / (withdrawalRate / 100))}x annual spending`}
+              subtitle={`${Math.round(1 / (withdrawalRate / 100))}x ${retirementMonthlySpending > 0 ? "retirement" : "annual"} spending`}
               accent
             />
             <MetricCard
@@ -320,7 +335,7 @@ export function FireDashboard({ result }: Props) {
                         <p className="text-xs text-slate-400 dark:text-slate-500">{v.description}</p>
                       </td>
                       <td className="text-right px-4 text-slate-600 dark:text-slate-400 tabular-nums">
-                        {formatCurrency(Math.round(annualSpending * v.spendingMultiplier))}/yr
+                        {formatCurrency(Math.round((retirementMonthlySpending > 0 ? retirementMonthlySpending * 12 : annualSpending) * v.spendingMultiplier))}/yr
                       </td>
                       <td className="text-right px-4 font-semibold text-slate-900 dark:text-white tabular-nums">
                         {formatCurrency(v.fireNumber)}
@@ -383,7 +398,10 @@ export function FireDashboard({ result }: Props) {
             <div className="space-y-2">
               {[
                 { label: "Annual take-home pay", value: result.takeHomeWithPension },
-                { label: "Annual spending", value: annualSpending },
+                { label: "Annual spending (current)", value: annualSpending },
+                ...(retirementMonthlySpending > 0
+                  ? [{ label: "Annual spending (retirement)", value: retirementMonthlySpending * 12 }]
+                  : []),
                 { label: "Annual savings (accessible)", value: accessibleAnnualSavings },
                 { label: "Annual pension contributions", value: pensionAnnualSavings },
                 { label: "Total saved per year", value: fire.annualSavings },

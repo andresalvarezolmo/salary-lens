@@ -21,6 +21,8 @@ export interface FireInputs {
 
   // Derived from the main calculator:
   annualSpending: number;
+  /** Optional retirement spending override (annual). If 0, uses annualSpending. */
+  retirementSpending: number;
   /** Total annual savings: ISA/savings categories + pension pot. */
   totalAnnualSavings: number;
   /** Accessible savings only (ISA, GIA) — excludable pension. */
@@ -104,6 +106,7 @@ export function calculateFire(inputs: FireInputs): FireResult {
     annualReturn,
     withdrawalRate,
     annualSpending,
+    retirementSpending,
     totalAnnualSavings,
     accessibleAnnualSavings,
     pensionAnnualSavings,
@@ -113,8 +116,11 @@ export function calculateFire(inputs: FireInputs): FireResult {
   const r = annualReturn / 100;
   const wr = withdrawalRate / 100;
 
+  // Use retirement spending override if provided, otherwise current spending
+  const effectiveSpending = retirementSpending > 0 ? retirementSpending : annualSpending;
+
   // FIRE number: portfolio that sustains annual spending at the withdrawal rate
-  const fireNumber = wr > 0 ? Math.round(annualSpending / wr) : 0;
+  const fireNumber = wr > 0 ? Math.round(effectiveSpending / wr) : 0;
   const alreadyFire = currentPortfolio >= fireNumber && fireNumber > 0;
 
   // Savings rate (as % of take-home pay)
@@ -134,7 +140,7 @@ export function calculateFire(inputs: FireInputs): FireResult {
     { label: "Fat FIRE", description: "Comfortable — 150% of current spending", mult: 1.5 },
   ];
   const variants: FireVariant[] = variantDefs.map(({ label, description, mult }) => {
-    const fn = wr > 0 ? Math.round((annualSpending * mult) / wr) : 0;
+    const fn = wr > 0 ? Math.round((effectiveSpending * mult) / wr) : 0;
     const yrs = fn > 0 ? yearsToTarget(currentPortfolio, totalAnnualSavings, r, fn) : Infinity;
     return {
       label,
@@ -177,7 +183,7 @@ export function calculateFire(inputs: FireInputs): FireResult {
   const pensionAccessAge = 57; // UK minimum pension access age (rising to 58 in 2028)
   const fireAge = isFinite(yrsToFire) ? Math.round(currentAge + yrsToFire) : -1;
   const prePensionYears = fireAge > 0 ? Math.max(0, pensionAccessAge - fireAge) : 0;
-  const prePensionNeeded = Math.round(prePensionYears * annualSpending);
+  const prePensionNeeded = Math.round(prePensionYears * effectiveSpending);
   const needsPensionBridge = fireAge > 0 && fireAge < pensionAccessAge;
 
   return {
