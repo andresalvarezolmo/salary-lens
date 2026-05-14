@@ -14,7 +14,7 @@ import { calculateFire } from "../lib/fire";
 import type { FireInputs } from "../lib/fire";
 import { CurrencyInput } from "./CurrencyInput";
 import { useTheme } from "../lib/theme";
-import { Flame, Target, TrendingUp, Clock, Shield, AlertTriangle } from "lucide-react";
+import { Flame, Target, TrendingUp, Clock, Shield, AlertTriangle, ChevronDown } from "lucide-react";
 
 interface Props {
   result: PensionResult;
@@ -77,6 +77,7 @@ export function FireDashboard({ result }: Props) {
   const [annualReturn, setAnnualReturn] = useState(7);
   const [withdrawalRate, setWithdrawalRate] = useState(4);
   const [retirementMonthlySpending, setRetirementMonthlySpending] = useState(0);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const currentPortfolio = currentAccessible + currentPension;
 
@@ -116,7 +117,7 @@ export function FireDashboard({ result }: Props) {
           <Flame className="w-4 h-4 text-orange-500" />
           FIRE Settings
         </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <CurrencyInput
             id="fireAge"
             label="Current Age"
@@ -142,39 +143,58 @@ export function FireDashboard({ result }: Props) {
             max={5000000}
             step={5000}
           />
-          <CurrencyInput
-            id="fireReturn"
-            label="Annual Return"
-            value={annualReturn}
-            onChange={setAnnualReturn}
-            prefix=""
-            suffix="%"
-            max={15}
-            step={0.5}
-          />
-          <CurrencyInput
-            id="fireWR"
-            label="Withdrawal Rate"
-            value={withdrawalRate}
-            onChange={setWithdrawalRate}
-            prefix=""
-            suffix="%"
-            max={10}
-            step={0.5}
-          />
-          <CurrencyInput
-            id="fireRetSpend"
-            label="Retirement Spending"
-            value={retirementMonthlySpending}
-            onChange={setRetirementMonthlySpending}
-            max={20000}
-            step={100}
-          />
         </div>
-        {retirementMonthlySpending === 0 && (
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-            Leave retirement spending at £0 to use your current monthly spending ({formatCurrency(annualSpending / 12)}/mo)
-          </p>
+
+        {/* Advanced settings — collapsed by default */}
+        <button
+          onClick={() => setAdvancedOpen(!advancedOpen)}
+          className="flex items-center gap-1.5 mt-4 text-xs font-medium text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+        >
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${advancedOpen ? "rotate-0" : "-rotate-90"}`} />
+          Advanced Settings
+          {!advancedOpen && (
+            <span className="text-slate-300 dark:text-slate-600 font-normal">
+              — {annualReturn}% return, {withdrawalRate}% withdrawal
+              {retirementMonthlySpending > 0 ? `, ${formatCurrency(retirementMonthlySpending)}/mo retirement` : ""}
+            </span>
+          )}
+        </button>
+        {advancedOpen && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3">
+            <CurrencyInput
+              id="fireReturn"
+              label="Annual Return"
+              value={annualReturn}
+              onChange={setAnnualReturn}
+              prefix=""
+              suffix="%"
+              max={15}
+              step={0.5}
+            />
+            <CurrencyInput
+              id="fireWR"
+              label="Withdrawal Rate"
+              value={withdrawalRate}
+              onChange={setWithdrawalRate}
+              prefix=""
+              suffix="%"
+              max={10}
+              step={0.5}
+            />
+            <CurrencyInput
+              id="fireRetSpend"
+              label="Retirement Spending"
+              value={retirementMonthlySpending}
+              onChange={setRetirementMonthlySpending}
+              max={20000}
+              step={100}
+            />
+            {retirementMonthlySpending === 0 && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 col-span-full -mt-1">
+                Leave at £0 to use your current monthly spending ({formatCurrency(annualSpending / 12)}/mo)
+              </p>
+            )}
+          </div>
         )}
       </div>
 
