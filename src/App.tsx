@@ -8,7 +8,8 @@ import { SalaryWaterfallChart } from "./components/SalaryWaterfallChart";
 import { PayslipComparison } from "./components/PayslipComparison";
 import { SavingsOverview } from "./components/SavingsOverview";
 import { BudgetCategoryList } from "./components/BudgetCategoryList";
-import { FireDashboard } from "./components/FireDashboard";
+import { FireDashboard, DEFAULT_FIRE_SETTINGS } from "./components/FireDashboard";
+import type { FireSettings } from "./components/FireDashboard";
 import {
   PiggyBank,
   TrendingUp,
@@ -60,14 +61,29 @@ const DEFAULT_INPUTS: PensionInputs = {
   taxCode: "",
 };
 
-function loadInputs(): PensionInputs {
+interface SavedState {
+  inputs: PensionInputs;
+  fire: FireSettings;
+}
+
+function loadState(): SavedState {
+  const defaults: SavedState = { inputs: DEFAULT_INPUTS, fire: DEFAULT_FIRE_SETTINGS };
+
   // Check URL hash first (shared link), then localStorage
   try {
     const hash = window.location.hash.slice(1);
     if (hash) {
       const decoded = JSON.parse(atob(hash));
       window.history.replaceState(null, "", window.location.pathname);
-      return { ...DEFAULT_INPUTS, ...decoded };
+      // Support both old format (flat PensionInputs) and new format ({ inputs, fire })
+      if (decoded.inputs) {
+        return {
+          inputs: { ...DEFAULT_INPUTS, ...decoded.inputs },
+          fire: { ...DEFAULT_FIRE_SETTINGS, ...decoded.fire },
+        };
+      }
+      // Legacy: flat object = PensionInputs only
+      return { inputs: { ...DEFAULT_INPUTS, ...decoded }, fire: DEFAULT_FIRE_SETTINGS };
     }
   } catch { /* invalid hash, ignore */ }
 
@@ -75,15 +91,24 @@ function loadInputs(): PensionInputs {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      return { ...DEFAULT_INPUTS, ...parsed };
+      if (parsed.inputs) {
+        return {
+          inputs: { ...DEFAULT_INPUTS, ...parsed.inputs },
+          fire: { ...DEFAULT_FIRE_SETTINGS, ...parsed.fire },
+        };
+      }
+      // Legacy: flat object
+      return { inputs: { ...DEFAULT_INPUTS, ...parsed }, fire: DEFAULT_FIRE_SETTINGS };
     }
   } catch { /* corrupt data, ignore */ }
 
-  return DEFAULT_INPUTS;
+  return defaults;
 }
 
 function App() {
-  const [inputs, setInputs] = useState<PensionInputs>(loadInputs);
+  const [initialState] = useState(loadState);
+  const [inputs, setInputs] = useState<PensionInputs>(initialState.inputs);
+  const [fireSettings, setFireSettings] = useState<FireSettings>(initialState.fire);
   const [studentLoanOpen, setStudentLoanOpen] = useState(false);
   const [taxCodeOpen, setTaxCodeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"calculator" | "fire">("calculator");
@@ -92,21 +117,22 @@ function App() {
   // Auto-save to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(inputs));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ inputs, fire: fireSettings }));
     } catch { /* storage full or disabled */ }
-  }, [inputs]);
+  }, [inputs, fireSettings]);
 
   const handleShare = useCallback(() => {
-    const encoded = btoa(JSON.stringify(inputs));
+    const encoded = btoa(JSON.stringify({ inputs, fire: fireSettings }));
     const url = `${window.location.origin}${window.location.pathname}#${encoded}`;
     navigator.clipboard.writeText(url).then(() => {
       setShareStatus("copied");
       setTimeout(() => setShareStatus("idle"), 2000);
     });
-  }, [inputs]);
+  }, [inputs, fireSettings]);
 
   const handleReset = useCallback(() => {
     setInputs(DEFAULT_INPUTS);
+    setFireSettings(DEFAULT_FIRE_SETTINGS);
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
@@ -737,7 +763,7 @@ function App() {
           <div className="lg:col-span-8 space-y-6">
 
             {/* FIRE Tab */}
-            {activeTab === "fire" && <FireDashboard result={result} />}
+            {activeTab === "fire" && <FireDashboard result={result} fireSettings={fireSettings} onFireSettingsChange={setFireSettings} />}
 
             {/* Calculator Tab */}
             {activeTab === "calculator" && <>

@@ -16,8 +16,30 @@ import { CurrencyInput } from "./CurrencyInput";
 import { useTheme } from "../lib/theme";
 import { Flame, Target, TrendingUp, Clock, Shield, AlertTriangle, ChevronDown, Info } from "lucide-react";
 
+export interface FireSettings {
+  currentAge: number;
+  currentAccessible: number;
+  currentPension: number;
+  annualReturn: number;
+  withdrawalRate: number;
+  retirementMonthlySpending: number;
+  inflationRate: number;
+}
+
+export const DEFAULT_FIRE_SETTINGS: FireSettings = {
+  currentAge: 30,
+  currentAccessible: 0,
+  currentPension: 0,
+  annualReturn: 7,
+  withdrawalRate: 4,
+  retirementMonthlySpending: 0,
+  inflationRate: 2.5,
+};
+
 interface Props {
   result: PensionResult;
+  fireSettings: FireSettings;
+  onFireSettingsChange: (settings: FireSettings) => void;
 }
 
 const tooltipStyle = {
@@ -67,17 +89,17 @@ function MetricCard({
   );
 }
 
-export function FireDashboard({ result }: Props) {
+export function FireDashboard({ result, fireSettings, onFireSettingsChange }: Props) {
   const theme = useTheme();
 
-  // FIRE-specific inputs
-  const [currentAge, setCurrentAge] = useState(30);
-  const [currentAccessible, setCurrentAccessible] = useState(0);
-  const [currentPension, setCurrentPension] = useState(0);
-  const [annualReturn, setAnnualReturn] = useState(7);
-  const [withdrawalRate, setWithdrawalRate] = useState(4);
-  const [retirementMonthlySpending, setRetirementMonthlySpending] = useState(0);
-  const [inflationRate, setInflationRate] = useState(2.5);
+  const {
+    currentAge, currentAccessible, currentPension,
+    annualReturn, withdrawalRate, retirementMonthlySpending, inflationRate,
+  } = fireSettings;
+
+  const set = <K extends keyof FireSettings>(key: K, value: FireSettings[K]) =>
+    onFireSettingsChange({ ...fireSettings, [key]: value });
+
   const [showNominal, setShowNominal] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -140,7 +162,7 @@ export function FireDashboard({ result }: Props) {
             id="fireAge"
             label="Current Age"
             value={currentAge}
-            onChange={setCurrentAge}
+            onChange={(v) => set("currentAge", v)}
             prefix=""
             max={80}
             step={1}
@@ -149,7 +171,7 @@ export function FireDashboard({ result }: Props) {
             id="firePortfolio"
             label="ISA / GIA Portfolio"
             value={currentAccessible}
-            onChange={setCurrentAccessible}
+            onChange={(v) => set("currentAccessible", v)}
             max={5000000}
             step={5000}
           />
@@ -157,7 +179,7 @@ export function FireDashboard({ result }: Props) {
             id="firePension"
             label="Pension Portfolio"
             value={currentPension}
-            onChange={setCurrentPension}
+            onChange={(v) => set("currentPension", v)}
             max={5000000}
             step={5000}
           />
@@ -183,7 +205,7 @@ export function FireDashboard({ result }: Props) {
               id="fireReturn"
               label="Annual Return"
               value={annualReturn}
-              onChange={setAnnualReturn}
+              onChange={(v) => set("annualReturn", v)}
               prefix=""
               suffix="%"
               max={15}
@@ -193,7 +215,7 @@ export function FireDashboard({ result }: Props) {
               id="fireWR"
               label="Withdrawal Rate"
               value={withdrawalRate}
-              onChange={setWithdrawalRate}
+              onChange={(v) => set("withdrawalRate", v)}
               prefix=""
               suffix="%"
               max={10}
@@ -203,7 +225,7 @@ export function FireDashboard({ result }: Props) {
               id="fireRetSpend"
               label="Retirement Spending"
               value={retirementMonthlySpending}
-              onChange={setRetirementMonthlySpending}
+              onChange={(v) => set("retirementMonthlySpending", v)}
               max={20000}
               step={100}
             />
@@ -211,7 +233,7 @@ export function FireDashboard({ result }: Props) {
               id="fireInflation"
               label="Inflation Rate"
               value={inflationRate}
-              onChange={setInflationRate}
+              onChange={(v) => set("inflationRate", v)}
               prefix=""
               suffix="%"
               max={10}
