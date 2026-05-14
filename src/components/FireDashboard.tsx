@@ -125,8 +125,6 @@ export function FireDashboard({ result }: Props) {
     });
   }, [fire.projection, showNominal, inf]);
 
-  const chartFireNumber = showNominal ? undefined : fire.fireNumber; // nominal FIRE number moves each year, shown per-point
-
   const hasData = annualSpending > 0 && totalAnnualSavings > 0;
 
   return (
