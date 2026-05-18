@@ -9,6 +9,7 @@ import { PayslipComparison } from "./components/PayslipComparison";
 import { SavingsOverview } from "./components/SavingsOverview";
 import { BudgetCategoryList } from "./components/BudgetCategoryList";
 import { FireDashboard, DEFAULT_FIRE_SETTINGS } from "./components/FireDashboard";
+import { PensionEfficiencyChart } from "./components/PensionEfficiencyChart";
 import type { FireSettings } from "./components/FireDashboard";
 import {
   PiggyBank,
@@ -865,40 +866,8 @@ function App() {
               )}
             </div>
 
-            {/* Effective cost */}
-            <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                    Effective Cost per £1 in Pension
-                  </p>
-                  <p className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
-                    {result.effectivePensionCostPerPound > 0
-                      ? `£${result.effectivePensionCostPerPound.toFixed(2)}`
-                      : "—"}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    Every £1 you lose from take-home puts{" "}
-                    {result.effectivePensionCostPerPound > 0
-                      ? `£${(1 / result.effectivePensionCostPerPound).toFixed(2)}`
-                      : "—"}{" "}
-                    into your pension
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Take-home reduction
-                  </p>
-                  <p className="text-lg font-semibold text-rose-500">
-                    -{formatCurrency(result.effectiveTakeHomeGain)}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    -{formatCurrency(Math.round(result.effectiveTakeHomeGain / 12))}{" "}
-                    / month
-                  </p>
-                </div>
-              </div>
-            </div>
+            {/* Pension Efficiency */}
+            <PensionEfficiencyChart inputs={inputs} result={result} />
 
             {/* Salary allocation chart */}
             <div className="rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 dark:ring-1 dark:ring-white/5 p-5 shadow-sm">
